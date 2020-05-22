@@ -8,6 +8,7 @@ const {
     isDefined,
     isString,
     isArray,
+    isArrayIndex,
     range,
 } = require('./../utilities/all');
 
@@ -15,17 +16,30 @@ module.exports = {
     loadGrammar,
     isValidSubstitution,
     assertIsValidProof,
+    assertIsValidGrammarFile,
+    substitute,
 };
 
 function loadGrammar(fileName) {
-    let grammar = {};
-    let proof = [];
+    let grammar;
 
     logIndent(loadGrammar.name, context => {
-        grammar.rules = [];
+        const fileContents = readFile(fileName);
+        grammar = assertIsValidGrammarFile(fileContents);
+    });
 
-        const text = readFile(fileName);
-        let lines = text.split(`
+    return grammar;
+}
+
+function assertIsValidGrammarFile(fileContents) {
+    let proof;
+    let grammar;
+
+    logIndent(assertIsValidGrammarFile.name, context => {
+        grammar = {};
+        grammar.rules = [];
+        proof = [];
+let lines = fileContents.split(`
 `);
         loop(lines, line => {
             // There should be no double spaces.
@@ -169,4 +183,45 @@ function isValidSubstitution(previous, current, left, right, j) {
     });
 
     return result;
+}
+
+function substitute(left, right, previous, index) {
+    let result;
+
+    logIndent(substitute.name, context=> {
+        merge(context, {left});
+        merge(context, {right});
+        merge(context, {previous});
+        merge(context, {index});
+
+        assert(() => isString(left));
+        assert(() => isString(right));
+        assert(() => isString(previous));
+        assert(() => isArrayIndex(previous, index));
+
+        if (index + left.length > previous.length - 1) {
+            result = false;
+            return;
+        }
+
+        let actualLeft = previous.substring(index, index + left.length);
+        merge(context, {actualLeft});
+        assert(() => actualLeft.length === left.length);
+        if (actualLeft !== left) {
+            result = false;
+            return;
+        }
+
+        let remaining = previous.substring(index + left.length);
+
+        let before = previous.substring(0, index);
+        result = before + right + remaining;
+    });
+
+    return result;
+}
+
+function prove(rules, left, right, depth) {
+
+
 }
