@@ -10,6 +10,7 @@ const {
     isArray,
     isArrayIndex,
     range,
+    isUndefined,
 } = require('./../utilities/all');
 
 module.exports = {
@@ -18,6 +19,7 @@ module.exports = {
     assertIsValidProof,
     assertIsValidGrammarFile,
     substitute,
+    prove,
 };
 
 function loadGrammar(fileName) {
@@ -31,30 +33,48 @@ function loadGrammar(fileName) {
     return grammar;
 }
 
+const goalToken = "#goal";
+
 function assertIsValidGrammarFile(fileContents) {
+    let log = true;
+    if (log) console.log('assertIsValidGrammarFile entered');
+
     let proof;
     let grammar;
 
     logIndent(assertIsValidGrammarFile.name, context => {
         grammar = {};
         grammar.rules = [];
+        grammar.goals = [];
         proof = [];
 let lines = fileContents.split(`
 `);
         loop(lines, line => {
+            if (log) console.log('processing line', { line });
+
             // There should be no double spaces.
             assert(() => line.indexOf('  ') < 0);
+
+            let parts = line.split(' ');
+
+            if (line.startsWith(goalToken)) {
+                let goal = parts.slice(1);
+                assert(() => goal.length === 2);
+                grammar.goals.push({left: goal[0], right: goal[1]});
+                return;
+            }
 
             if (line === '') {
                 checkProof();
                 return;
             }
 
+            // This is a proof step
             if (line.indexOf(' ') < 0) {
+                proof.push(line);
                 return;
             }
     
-            let parts = line.split(' ');
             merge(context, {parts});
             assert(() => parts.length === 2);
 
@@ -69,6 +89,7 @@ let lines = fileContents.split(`
     return grammar;
 
     function checkProof() {
+        if (log) console.log('checkProof entered', {proof});
         // If proof is empty, nothing to check
         if (proof.length === 0) {
             return;
@@ -84,13 +105,31 @@ let lines = fileContents.split(`
     }
 }
 
+function assertIsProofStep(step) {
+    logIndent(assertIsProofStep.name, context => {
+        assert(() => isString(step));
+    });
+}
+
+function assertIsProof(proof) {
+    logIndent(assertIsProof.name, context => {
+        merge(context, {proof});
+
+        assert(() => isArray(proof));
+        loop(proof, p => {
+            assertIsProofStep(p);
+        })
+    });
+}
+
 function assertIsValidProof(rules, proof) {
+    let log = true;
+    if (log) console.log('assertIsValidProof entered', {rules, proof});
     logIndent(assertIsValidProof.name, context => {
         merge(context, {rules});
         merge(context, {proof});
 
         assert(() => isArray(rules));
-        assert(() => isArray(proof));
 
         // Proof should have at least 2 steps
         assert(() => proof.length > 2);
@@ -108,11 +147,11 @@ function assertIsValidProof(rules, proof) {
 
             loop(range(previous.length), previousIndex => {
                 loop(rules, rule => {
-                    if (isValidSubstitution(
-                            previous, current, rule.left, rule.right, previousIndex)) {
-                        valid = true;
-                        return;
-                    }
+                    let s = isValidSubstitution(
+                        previous, current, rule.left, rule.right, previousIndex);
+                    merge(context, {s});
+                    valid = s.valid;
+                    return;
                 });
                 if (valid) {
                     return;
@@ -133,10 +172,10 @@ function isValidSubstitution(previous, current, left, right, j) {
         merge(context, {right});
         merge(context, {j});
 
-        assert(() => isString(previous));
-        assert(() => isString(current));
-        assert(() => isString(left));
-        assert(() => isString(right));
+        assertIsProofStep(previous);
+        assertIsProofStep(current);
+        assertIsProofStep(left);
+        assertIsProofStep(right);
         assert(() => isInteger(j));
 
         // Leading up to the rule before and current should match.
@@ -194,12 +233,12 @@ function substitute(left, right, previous, index) {
         merge(context, {previous});
         merge(context, {index});
 
-        assert(() => isString(left));
-        assert(() => isString(right));
-        assert(() => isString(previous));
+        assertIsProofStep(left);
+        assertIsProofStep(right);
+        assertIsProofStep(previous);
         assert(() => isArrayIndex(previous, index));
 
-        if (index + left.length > previous.length - 1) {
+        if (index + left.length > previous.length) {
             result = false;
             return;
         }
@@ -221,7 +260,81 @@ function substitute(left, right, previous, index) {
     return result;
 }
 
-function prove(rules, left, right, depth) {
-
-
+function assertIsGrammarRules(rules) {
+    logIndent(assertIsGrammarRules.name, context => {
+        merge(context, {rules});
+        assert(() => isArray(rules));
+        loop(rules, r => {
+            assert(() => isDefined(r));
+            assertIsProofStep(r.left);
+            assertIsProofStep(r.right);
+        });
+    });
 }
+
+function prove(rules, start, goal, depth, proof) {
+    let log = false;
+    if (log) console.log('prove entered', {depth});
+    let found = false;
+    logIndent(prove.name, context => {
+        merge(context, {rules});
+        merge(context, {start});
+        merge(context, {goal});
+        merge(context, {depth});
+        merge(context, {proof});
+
+        assertIsGrammarRules(rules);
+        assertIsProofStep(start);
+        assertIsProofStep(goal);
+        // We don't need to prove our premise.
+        assert(() => start !== goal);
+        assert(() => isInteger(depth));
+        assert(() => 0 <= depth);
+        if (isUndefined(proof)) {
+            proof = [];
+            proof.push(start);
+        }
+        assertIsProof(proof);
+
+        loop(range(start.length), index => {
+            if (found) {
+                return true;
+            }
+            loop(rules, rule => {
+                if (found) {
+                    return true;
+                }
+                let s = substitute(rule.left, rule.right, start, index);
+                if (s === false) {
+                    return;
+                }
+                proof.push(s);
+                if (s === goal) {
+                    if (log) console.log('found', {s, proof});
+                    found = true;
+                    return;
+                }
+                if (depth > 1) {
+                    if (log) console.log('calling prove');
+                    let result = prove(rules, s, goal, depth-1, proof);
+                    if (log) console.log('called prove', { result });
+                    if (result !== false) {
+                        found = true;
+                        return;
+                    }
+                }
+                proof.pop();
+                if (log) console.log({ depth, proof })
+            });
+        });
+    });
+
+    if (log) console.log('prove leaving', { depth, proof });
+
+    if (found) {
+        return proof;
+    }
+
+    return false;
+}
+
