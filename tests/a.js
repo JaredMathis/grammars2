@@ -16,7 +16,7 @@ logIndent(__filename, context => {
     merge(context, {g});
     assert(() => isDefined(g));
     assert(() => isArray(g.rules));
-    assert(() => g.rules.length === 2);
+    assert(() => g.rules.length === 3);
     assert(() => isEqualJson(g.rules[0], {"left":"a1","right":"1a"}));
     assert(() => isEqualJson(g.rules[1], {"left":"a0","right":"b0"}));
 });

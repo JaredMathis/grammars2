@@ -14,6 +14,8 @@ const {
 } = require('../grammars');
 
 logIndent(__filename, context => {    
+    let i = 0;
+    merge(context, {i:i++});
     assertIsValidGrammarFile(`
 a aa
 
@@ -55,7 +57,5 @@ aaa
 aab
 bab
 bbb
-bb
-b
 `);
 });

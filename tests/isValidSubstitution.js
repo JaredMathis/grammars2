@@ -35,4 +35,6 @@ logIndent(__filename, context => {
     assertIsEqualJson(isValidSubstitution('ac', 'addd', 'c', 'ddd', 1), {"valid":true});
     merge(context, {i:i++});
     assertIsEqualJson(isValidSubstitution('abbc', 'ad', 'bbc', 'd', 1), {"valid":true});
+    merge(context, {i:i++});
+    assertIsEqualJson(isValidSubstitution('a11', '1a1', 'a1', '1a', 0), {"valid":true});
 });

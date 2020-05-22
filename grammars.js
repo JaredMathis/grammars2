@@ -26,6 +26,7 @@ module.exports = {
     prove,
     addProof,
     removeGoal,
+    breakUpProof,
 };
 
 function loadGrammar(fileName) {
@@ -51,6 +52,10 @@ function getLines(s) {
         
     });
     return lines;
+}
+
+function lineIsProofStep(line) {
+    return line.indexOf(' ') < 0;
 }
 
 function assertIsValidGrammarFile(fileContents) {
@@ -90,7 +95,7 @@ function assertIsValidGrammarFile(fileContents) {
             }
 
             // This is a proof step
-            if (line.indexOf(' ') < 0) {
+            if (lineIsProofStep(line)) {
                 proof.push(line);
                 return;
             }
@@ -164,6 +169,7 @@ function assertIsValidProof(rules, proof) {
         // Proof should have at least 2 steps
         assert(() => proof.length > 2);
 
+        merge(context, {step:'processing proof steps'});
         loop(range(proof.length - 1, 1), (currentIndex) => {
             let valid = false;
 
@@ -175,43 +181,53 @@ function assertIsValidProof(rules, proof) {
 
             let current = proof[currentIndex];            
 
+            let allS = [];
             loop(range(previous.length), previousIndex => {
                 loop(rules, rule => {
+                    if (valid) {
+                        return;
+                    }
                     let s = isValidSubstitution(
                         previous, current, rule.left, rule.right, previousIndex);
+                    allS.push(s);
                     merge(context, {s});
+                    assert(() => !valid);
                     valid = s.valid;
-                    return;
                 });
                 if (valid) {
                     return;
                 }
             });
 
+            merge(context, {allS});
+            merge(context, {valid});
             assert(() => valid);
         });
     });
 }
 
-function isValidSubstitution(previous, current, left, right, j) {
+function isValidSubstitution(previous, current, left, right, index) {
+    let log = false;
+    if (log) console.log('isValidSubstitution entered', {previous, current, left, right, index});
+
     let result = {};
     logIndent(isValidSubstitution.name, context => {
         merge(context, {previous});
         merge(context, {current});
         merge(context, {left});
         merge(context, {right});
-        merge(context, {j});
+        merge(context, {index});
 
         assertIsProofStep(previous);
         assertIsProofStep(current);
         assertIsProofStep(left);
         assertIsProofStep(right);
-        assert(() => isInteger(j));
+        assert(() => isInteger(index));
 
         // Leading up to the rule before and current should match.
-        let previousBefore = previous.substring(0, j);
+        let previousBefore = previous.substring(0, index);
         merge(context, {previousBefore});
-        let currentBefore = current.substring(0, j);
+        let currentBefore = current.substring(0, index);
         merge(context, {currentBefore});
         if (previousBefore !== currentBefore) {
             result.valid = false;
@@ -220,7 +236,7 @@ function isValidSubstitution(previous, current, left, right, j) {
         }
 
         // The previous should match the rule left.
-        let previousMatch = previous.substring(j, j + left.length);
+        let previousMatch = previous.substring(index, index + left.length);
         merge(context, {previousMatch});
         if (previousMatch !== left) {
             result.valid = false;
@@ -229,7 +245,7 @@ function isValidSubstitution(previous, current, left, right, j) {
         }
 
         // The current should match the rule right.
-        let currentMatch = current.substring(j, j + right.length);
+        let currentMatch = current.substring(index, index + right.length);
         merge(context, {currentMatch});
         if (currentMatch !== right) {
             result.valid = false;
@@ -238,9 +254,9 @@ function isValidSubstitution(previous, current, left, right, j) {
         }
 
         // The afters should match.
-        let previousAfter = previous.substring(j + left.length);
+        let previousAfter = previous.substring(index + left.length);
         merge(context, {previousAfter});
-        let currentAfter = current.substring(j + right.length);
+        let currentAfter = current.substring(index + right.length);
         merge(context, {currentAfter});
         if (previousAfter !== currentAfter) {
             result.valid = false;
@@ -250,6 +266,8 @@ function isValidSubstitution(previous, current, left, right, j) {
 
         result.valid = true;
     });
+
+    if (log) console.log({result});
 
     return result;
 }
@@ -419,5 +437,61 @@ function removeGoal(file, left, right) {
         loop(result, line => {
             appendFileLine(file, line);
         });
+    });
+}
+
+function breakUpProof(proof) {
+    let result = [];
+    logIndent(breakUpProof.name, context => {
+        let space = 1;
+    
+        while (space <= proof.length) {
+            let i = 0;
+            while (true) {
+                let a = proof[i];
+                let b = proof[i + space];
+                if (isUndefined(b)) {
+                    break;
+                }
+                let c = proof[i + 2*space];
+                if (isUndefined(c)) {
+                    break;
+                }
+
+                result.push([a,b,c]);
+    
+                i+= space*2;
+            }
+    
+            space *= 2;
+        }   
+    });
+
+    return result;
+}
+
+function max3ProofSteps(file) {
+    const maxProofSteps = 3;
+    let result = [];
+    logIndent(max3ProofSteps.name, context => {
+        // Make sure proofs are valid.
+        loadGrammar(file);
+
+        let fileContents = readFile(file);
+        let lines = getLines(fileContents);
+
+        let proof = [];
+        loop(lines, line => {
+            if (lineIsProofStep(line)) {
+                proof.push(line);
+                return;
+            } else {
+                result.push(line);
+            }
+
+            checkProof();
+        });
+
+        
     });
 }
