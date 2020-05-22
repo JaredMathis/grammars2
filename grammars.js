@@ -29,6 +29,7 @@ module.exports = {
     removeGoal,
     breakUpProof,
     max3ProofSteps,
+    formatFile,
 };
 
 function loadGrammar(fileName) {
@@ -541,4 +542,30 @@ function max3ProofSteps(file) {
 
         overwriteFile(file, result);        
     });
+}
+
+function formatFile(file) {
+    let text = readFile(file);
+    let lines = getLines(text);
+
+    if (lines.length === 0) {
+        return;
+    }
+    
+    let result = [
+        lines[0],
+    ];
+
+    loop(range(lines.length - 1, 1), index => {
+        let previous = lines[index - 1];
+        let current = lines[index];
+
+        if (current === '' && current === previous) {
+            return;
+        }
+
+        result.push(current);
+    })
+
+    overwriteFile(file, result);
 }

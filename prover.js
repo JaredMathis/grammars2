@@ -16,32 +16,51 @@ const {
     prove,
     addProof,
     max3ProofSteps,
+    formatFile,
 } = require('./grammars');
 
-logIndent(__filename, context => {
-    let file = './grammars/grow.g';
+module.exports = prover;
 
-    let grammar = loadGrammar(file);
-
-    let maxDepth = 8;
-    loop(grammar.goals, goal=> {
-        let found = false;
-        let proof;
-        loop(range(maxDepth, 1), depth => {
-            proof = prove(grammar.rules, goal.left, goal.right, depth);
-            if (proof !== false) {
-                found = true;
-                return;
-            }
-        });
-
-        if (found) {
-            console.log('proved goal', { goal });
-            addProof(file, proof);
-        } else {
-            console.log('did not yet prove goal', { goal });
+function prover(file) {
+    logIndent(prover.name, context => {
+        let log = false;
+    
+        let changed = true;
+    
+        while (changed) {
+            let grammar = loadGrammar(file);
+    
+            changed = false;
+    
+            let maxDepth = 8;
+            loop(grammar.goals, goal=> {
+                merge(context, {step: 'proving goal'});
+                let found = false;
+                let proof;
+                loop(range(maxDepth, 1), depth => {
+                    proof = prove(grammar.rules, goal.left, goal.right, depth);
+                    if (proof !== false) {
+                        found = true;
+                        return;
+                    }
+                });
+    
+                if (found) {
+                    changed = true;
+                    merge(context, {proof});
+                    merge(context, {step: 'proved goal'});
+                    if (log) console.log('proved goal', { goal });
+    
+                    addProof(file, proof);
+                    merge(context, {step: 'added proof goal'});
+                } else {
+                    if (log) console.log('did not yet prove goal', { goal });
+                }
+            });
+    
+            max3ProofSteps(file);
+    
+            formatFile(file);
         }
     });
-
-    max3ProofSteps(file);
-});
+}
