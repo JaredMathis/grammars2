@@ -13,6 +13,7 @@ const {
     isUndefined,
     arrayLast,
     appendFileLine,
+    assertIsEqual,
 } = require('./../utilities/all');
 
 const fs = require('fs');
@@ -27,6 +28,7 @@ module.exports = {
     addProof,
     removeGoal,
     breakUpProof,
+    max3ProofSteps,
 };
 
 function loadGrammar(fileName) {
@@ -55,7 +57,7 @@ function getLines(s) {
 }
 
 function lineIsProofStep(line) {
-    return line.indexOf(' ') < 0;
+    return line.length > 0 && line.indexOf(' ') < 0;
 }
 
 function assertIsValidGrammarFile(fileContents) {
@@ -408,6 +410,13 @@ function addProof(file, proof) {
     });
 }
 
+function overwriteFile(file, lines) {
+    fs.writeFileSync(file, '');
+    loop(lines, line => {
+        appendFileLine(file, line);
+    });
+}
+
 function removeGoal(file, left, right) {
     logIndent(removeGoal.name, context => {
         merge(context, {file});
@@ -422,9 +431,12 @@ function removeGoal(file, left, right) {
 
         let result = [];
 
+        let goalCount = 0;
+
         loop(lines, line => {
             // Skip if the line is the goal.
             if (line === `${goalToken} ${left} ${right}`) {
+                goalCount++;
                 return;
             }
 
@@ -432,17 +444,23 @@ function removeGoal(file, left, right) {
             result.push(line);
         });
 
+        assertIsEqual(() => goalCount, 1);
+
         // Reset file contents.
-        fs.writeFileSync(file, '');
-        loop(result, line => {
-            appendFileLine(file, line);
-        });
+        overwriteFile(file, result);
+
+        merge(context, {result});
     });
 }
 
 function breakUpProof(proof) {
+    let log = false;
     let result = [];
     logIndent(breakUpProof.name, context => {
+        merge(context, {proof});
+        // over 9 is untested
+        assert(() => proof.length <= 9);
+
         let space = 1;
     
         while (space <= proof.length) {
@@ -462,7 +480,7 @@ function breakUpProof(proof) {
                 }
 
                 let r = [a,b,c];
-                console.log({r});
+                if (log) console.log({r});
 
                 if (a === b && b === c && c === a) {
                     break;
@@ -485,7 +503,6 @@ function breakUpProof(proof) {
 }
 
 function max3ProofSteps(file) {
-    const maxProofSteps = 3;
     let result = [];
     logIndent(max3ProofSteps.name, context => {
         // Make sure proofs are valid.
@@ -503,9 +520,25 @@ function max3ProofSteps(file) {
                 result.push(line);
             }
 
-            checkProof();
+            processProof();
         });
+        processProof();
 
-        
+        function processProof() {
+            if (proof.length === 0) {
+                return;
+            }
+            let proofs = breakUpProof(proof);
+            loop(proofs, p => {
+                result.push('');
+                loop(p, step=> {
+                    result.push(step);
+                });
+            });
+            // Clear the proof buffer now that we're processed a proof
+            proof = [];
+        }
+
+        overwriteFile(file, result);        
     });
 }

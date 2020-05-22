@@ -5,6 +5,7 @@ require('./tests/assertIsValidGrammarFile');
 require('./tests/substitute');
 require('./tests/prove');
 require('./tests/breakUpProof');
+require('./tests/all-grammars-valid.js');
 
 
 

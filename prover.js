@@ -15,7 +15,7 @@ const {
     loadGrammar,
     prove,
     addProof,
-    removeGoal,
+    max3ProofSteps,
 } = require('./grammars');
 
 logIndent(__filename, context => {
@@ -23,7 +23,7 @@ logIndent(__filename, context => {
 
     let grammar = loadGrammar(file);
 
-    let maxDepth = 5;
+    let maxDepth = 8;
     loop(grammar.goals, goal=> {
         let found = false;
         let proof;
@@ -36,7 +36,10 @@ logIndent(__filename, context => {
         });
 
         if (found) {
+            console.log('proved goal', { goal });
             addProof(file, proof);
+        } else {
+            console.log('did not yet prove goal', { goal });
         }
     });
 
