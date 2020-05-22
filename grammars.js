@@ -12,6 +12,7 @@ const {
     range,
     isUndefined,
     arrayLast,
+    appendFileLine,
 } = require('./../utilities/all');
 
 const fs = require('fs');
@@ -24,6 +25,7 @@ module.exports = {
     substitute,
     prove,
     addProof,
+    removeGoal,
 };
 
 function loadGrammar(fileName) {
@@ -39,6 +41,18 @@ function loadGrammar(fileName) {
 
 const goalToken = "#goal";
 
+function getLines(s) {
+    let lines;
+    logIndent(getLines.name, context => {
+        assert(() => isString(s));
+
+        lines = s.split(`
+`);
+        
+    });
+    return lines;
+}
+
 function assertIsValidGrammarFile(fileContents) {
     let log = false;
     if (log) console.log('assertIsValidGrammarFile entered');
@@ -51,8 +65,10 @@ function assertIsValidGrammarFile(fileContents) {
         grammar.rules = [];
         grammar.goals = [];
         proof = [];
-let lines = fileContents.split(`
-`);
+
+        let lines = getLines(fileContents);
+
+        merge(context, {step:'processing lines'})
         loop(lines, line => {
             if (log) console.log('processing line', { line });
 
@@ -90,6 +106,7 @@ let lines = fileContents.split(`
         checkProof();
 
         // Make sure goals have not been proved.
+        merge(context, {step:'already proved goals'})
         loop(grammar.goals, goal => {
             loop(grammar.rules, rule => {
                 let goalAlreadyProved = goal.left === rule.left && goal.right === rule.right;
@@ -136,7 +153,7 @@ function assertIsProof(proof) {
 }
 
 function assertIsValidProof(rules, proof) {
-    let log = true;
+    let log = false;
     if (log) console.log('assertIsValidProof entered', {rules, proof});
     logIndent(assertIsValidProof.name, context => {
         merge(context, {rules});
@@ -354,11 +371,13 @@ function prove(rules, start, goal, depth, proof) {
 function addProof(file, proof) {
     logIndent(addProof.name, context => {
         // Add the proof.
-        appendNewLine();
+        appendFileLine(file);
         loop(proof, p => {
-            appendNewLine();
+            appendFileLine(file);
             fs.appendFileSync(file, p);
         });
+
+        removeGoal(file, proof[0], arrayLast(proof));
 
         // Make sure proofs in file are valid.
         let grammar = loadGrammar(file);
@@ -369,9 +388,36 @@ function addProof(file, proof) {
         assert(() => lastRule.left === proof[0]);
         assert(() => lastRule.right === arrayLast(proof));
     });
+}
 
-    function appendNewLine() {
-        fs.appendFileSync(file, `
-`);
-    }
+function removeGoal(file, left, right) {
+    logIndent(removeGoal.name, context => {
+        merge(context, {file});
+        merge(context, {left});
+        merge(context, {right});
+
+        assertIsProofStep(left);
+        assertIsProofStep(right);
+
+        let fileContents = readFile(file);
+        let lines = getLines(fileContents);
+
+        let result = [];
+
+        loop(lines, line => {
+            // Skip if the line is the goal.
+            if (line === `${goalToken} ${left} ${right}`) {
+                return;
+            }
+
+            // Otherwise include the line.
+            result.push(line);
+        });
+
+        // Reset file contents.
+        fs.writeFileSync(file, '');
+        loop(result, line => {
+            appendFileLine(file, line);
+        });
+    });
 }

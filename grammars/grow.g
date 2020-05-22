@@ -1,7 +1,5 @@
 a aa
 
-#goal a aaaaaa
-
 
 a
 aa

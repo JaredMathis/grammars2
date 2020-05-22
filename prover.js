@@ -15,6 +15,7 @@ const {
     loadGrammar,
     prove,
     addProof,
+    removeGoal,
 } = require('./grammars');
 
 logIndent(__filename, context => {
@@ -38,4 +39,6 @@ logIndent(__filename, context => {
             addProof(file, proof);
         }
     });
+
+    max3ProofSteps(file);
 });
