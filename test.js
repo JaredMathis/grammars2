@@ -7,6 +7,7 @@ require('./tests/prove');
 require('./tests/breakUpProof');
 require('./tests/all-grammars-valid.js');
 require('./tests/t1/test.js');
+require('./tests/t2/test.js');
 
 
 
