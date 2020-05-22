@@ -11,7 +11,10 @@ const {
     isArrayIndex,
     range,
     isUndefined,
+    arrayLast,
 } = require('./../utilities/all');
+
+const fs = require('fs');
 
 module.exports = {
     loadGrammar,
@@ -20,6 +23,7 @@ module.exports = {
     assertIsValidGrammarFile,
     substitute,
     prove,
+    addProof,
 };
 
 function loadGrammar(fileName) {
@@ -36,7 +40,7 @@ function loadGrammar(fileName) {
 const goalToken = "#goal";
 
 function assertIsValidGrammarFile(fileContents) {
-    let log = true;
+    let log = false;
     if (log) console.log('assertIsValidGrammarFile entered');
 
     let proof;
@@ -84,6 +88,15 @@ let lines = fileContents.split(`
         });
 
         checkProof();
+
+        // Make sure goals have not been proved.
+        loop(grammar.goals, goal => {
+            loop(grammar.rules, rule => {
+                let goalAlreadyProved = goal.left === rule.left && goal.right === rule.right;
+                merge(context, {goalAlreadyProved});
+                assert(() => !goalAlreadyProved);
+            });
+        });
     });
 
     return grammar;
@@ -98,7 +111,7 @@ let lines = fileContents.split(`
         assertIsValidProof(grammar.rules, proof);
 
         // Add the first and last step of the proof as a new grammar rule.
-        grammar.rules.push({left: proof[0], right: proof[proof.length-1]});
+        grammar.rules.push({left: proof[0], right: arrayLast(proof)});
 
         // Reset the proof.
         proof = [];
@@ -338,3 +351,27 @@ function prove(rules, start, goal, depth, proof) {
     return false;
 }
 
+function addProof(file, proof) {
+    logIndent(addProof.name, context => {
+        // Add the proof.
+        appendNewLine();
+        loop(proof, p => {
+            appendNewLine();
+            fs.appendFileSync(file, p);
+        });
+
+        // Make sure proofs in file are valid.
+        let grammar = loadGrammar(file);
+
+        // Make sure last proof is the proof we added
+        let lastRule = arrayLast(grammar.rules);
+        merge(context, { lastRule });
+        assert(() => lastRule.left === proof[0]);
+        assert(() => lastRule.right === arrayLast(proof));
+    });
+
+    function appendNewLine() {
+        fs.appendFileSync(file, `
+`);
+    }
+}

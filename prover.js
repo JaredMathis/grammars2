@@ -8,11 +8,13 @@ const {
     isEqualJson,
     assertIsEqualJson,
     throws,
+    range,
 } = require('../utilities/all');
 
 const {
     loadGrammar,
     prove,
+    addProof,
 } = require('./grammars');
 
 logIndent(__filename, context => {
@@ -20,5 +22,20 @@ logIndent(__filename, context => {
 
     let grammar = loadGrammar(file);
 
-    console.log(JSON.stringify({grammar}, null, 2));
-})
+    let maxDepth = 5;
+    loop(grammar.goals, goal=> {
+        let found = false;
+        let proof;
+        loop(range(maxDepth, 1), depth => {
+            proof = prove(grammar.rules, goal.left, goal.right, depth);
+            if (proof !== false) {
+                found = true;
+                return;
+            }
+        });
+
+        if (found) {
+            addProof(file, proof);
+        }
+    });
+});
