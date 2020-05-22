@@ -17,6 +17,7 @@ const {
     addProof,
     max3ProofSteps,
     formatFile,
+    removeRedundantProofs,
 } = require('./grammars');
 
 module.exports = prover;
@@ -59,6 +60,7 @@ function prover(file) {
             });
     
             max3ProofSteps(file);
+            removeRedundantProofs(file);
     
             formatFile(file);
         }

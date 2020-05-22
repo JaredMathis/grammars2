@@ -2,20 +2,9 @@ a aa
 
 #goal a aaaaaaaaaaa
 
-
-
-
 a
 aa
 aaa
-
-aaa
-aaaa
-aaaaa
-
-aaaaa
-aaaaaa
-aaaaaaa
 
 a
 aaa

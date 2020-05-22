@@ -30,12 +30,14 @@ module.exports = {
     breakUpProof,
     max3ProofSteps,
     formatFile,
+    removeRedundantProofs,
 };
 
 function loadGrammar(fileName) {
     let grammar;
 
     logIndent(loadGrammar.name, context => {
+        merge(context, {fileName});
         const fileContents = readFile(fileName);
         grammar = assertIsValidGrammarFile(fileContents);
     });
@@ -127,20 +129,28 @@ function assertIsValidGrammarFile(fileContents) {
     return grammar;
 
     function checkProof() {
-        if (log) console.log('checkProof entered', {proof});
-        // If proof is empty, nothing to check
-        if (proof.length === 0) {
-            return;
-        }
-
-        let valid = isValidProof(grammar.rules, proof);
-        assert(() => valid);
-
-        // Add the first and last step of the proof as a new grammar rule.
-        grammar.rules.push({left: proof[0], right: arrayLast(proof)});
-
-        // Reset the proof.
-        proof = [];
+        logIndent(checkProof.name, context => {
+            if (log) console.log('checkProof entered', {proof});
+            // If proof is empty, nothing to check
+            if (proof.length === 0) {
+                return;
+            }
+    
+            // If the proof is derivable from just first and last steps from previous
+            // proofs, then this proof is redundant.
+            let redundant = isValidProof(grammar.rules, [proof[0], arrayLast(proof)]);
+            merge(context, {proof});
+            assert(() => !redundant);
+    
+            let valid = isValidProof(grammar.rules, proof);
+            assert(() => valid);
+    
+            // Add the first and last step of the proof as a new grammar rule.
+            grammar.rules.push({left: proof[0], right: arrayLast(proof)});
+    
+            // Reset the proof.
+            proof = [];
+        });
     }
 }
 
@@ -170,9 +180,6 @@ function isValidProof(rules, proof) {
         merge(context, {proof});
 
         assert(() => isArray(rules));
-
-        // Proof should have at least 2 steps
-        assert(() => proof.length > 2);
 
         merge(context, {step:'processing proof steps'});
         loop(range(proof.length - 1, 1), (currentIndex) => {
@@ -576,4 +583,45 @@ function formatFile(file) {
     })
 
     overwriteFile(file, result);
+}
+
+function removeRedundantProofs(file) {
+    return;
+    let result = [];
+    logIndent(max3ProofSteps.name, context => {
+        // Make sure proofs are valid.
+        loadGrammar(file);
+
+        let fileContents = readFile(file);
+        let lines = getLines(fileContents);
+
+        let proof = [];
+        loop(lines, line => {
+            if (lineIsProofStep(line)) {
+                proof.push(line);
+                return;
+            } else {
+                result.push(line);
+            }
+
+            processProof();
+        });
+        processProof();
+
+        function processProof() {
+            if (proof.length === 0) {
+                return;
+            }
+            let shorter = [proof[0], arrayLast(proof)];
+            if (isValidProof(rules, shorter)) {
+                return;
+            }
+
+            loop(proof, p=>{
+                result.push(p);
+            });
+        }
+
+        overwriteFile(file, result);        
+    });
 }
