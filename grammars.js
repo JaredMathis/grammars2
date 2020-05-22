@@ -449,18 +449,32 @@ function breakUpProof(proof) {
             let i = 0;
             while (true) {
                 let a = proof[i];
+                if (isUndefined(a)) {
+                    a = arrayLast(proof);
+                }
                 let b = proof[i + space];
                 if (isUndefined(b)) {
-                    break;
+                    b = arrayLast(proof);
                 }
                 let c = proof[i + 2*space];
                 if (isUndefined(c)) {
+                    c = arrayLast(proof);
+                }
+
+                let r = [a,b,c];
+                console.log({r});
+
+                if (a === b && b === c && c === a) {
                     break;
                 }
 
-                result.push([a,b,c]);
-    
                 i+= space*2;
+
+                if (a === b || b === c || a === c) {
+                    continue;
+                }
+
+                result.push(r);
             }
     
             space *= 2;
