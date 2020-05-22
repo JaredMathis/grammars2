@@ -10,7 +10,7 @@ const {
 } = require('../../utilities/all');
 
 const {
-    assertIsValidProof,
+    isValidProof,
 } = require('../grammars');
 
 logIndent(__filename, context => {
@@ -20,13 +20,13 @@ logIndent(__filename, context => {
     
     rules = [{left:'a',right:'aa'}];
     proof = ['a', 'aa', 'aaa'];
-    assertIsValidProof(rules, proof);
+    assert(() => isValidProof(rules, proof));
 
     rules = [{left:'a',right:'b'}];
     proof = ['aaa', 'aab', 'bab', 'bbb'];
-    assertIsValidProof(rules, proof);
+    assert(() => isValidProof(rules, proof));
 
     rules = [{left:'a',right:'b'},{left:'b', right:''}];
     proof = ['aaa', 'aab', 'bab', 'bbb', 'bb', 'b', ''];
-    assertIsValidProof(rules, proof);
+    assert(() => isValidProof(rules, proof));
 });

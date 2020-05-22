@@ -21,7 +21,7 @@ const fs = require('fs');
 module.exports = {
     loadGrammar,
     isValidSubstitution,
-    assertIsValidProof,
+    isValidProof,
     assertIsValidGrammarFile,
     substitute,
     prove,
@@ -133,7 +133,8 @@ function assertIsValidGrammarFile(fileContents) {
             return;
         }
 
-        assertIsValidProof(grammar.rules, proof);
+        let valid = isValidProof(grammar.rules, proof);
+        assert(() => valid);
 
         // Add the first and last step of the proof as a new grammar rule.
         grammar.rules.push({left: proof[0], right: arrayLast(proof)});
@@ -160,10 +161,11 @@ function assertIsProof(proof) {
     });
 }
 
-function assertIsValidProof(rules, proof) {
+function isValidProof(rules, proof) {
+    let result = true;
     let log = false;
-    if (log) console.log('assertIsValidProof entered', {rules, proof});
-    logIndent(assertIsValidProof.name, context => {
+    if (log) console.log('isValidProof entered', {rules, proof});
+    logIndent(isValidProof.name, context => {
         merge(context, {rules});
         merge(context, {proof});
 
@@ -174,7 +176,7 @@ function assertIsValidProof(rules, proof) {
 
         merge(context, {step:'processing proof steps'});
         loop(range(proof.length - 1, 1), (currentIndex) => {
-            let valid = false;
+            let validStep = false;
 
             let previousIndex = currentIndex - 1;
             merge(context, {previousIndex});
@@ -187,26 +189,32 @@ function assertIsValidProof(rules, proof) {
             let allS = [];
             loop(range(previous.length), previousIndex => {
                 loop(rules, rule => {
-                    if (valid) {
+                    if (validStep) {
                         return;
                     }
                     let s = isValidSubstitution(
                         previous, current, rule.left, rule.right, previousIndex);
                     allS.push(s);
                     merge(context, {s});
-                    assert(() => !valid);
-                    valid = s.valid;
+                    assert(() => !validStep);
+                    validStep = s.valid;
                 });
-                if (valid) {
+                if (validStep) {
                     return;
                 }
             });
 
             merge(context, {allS});
-            merge(context, {valid});
-            assert(() => valid);
+            merge(context, {validStep});
+
+            if (!validStep) {
+                result = false;
+                return;
+            }
         });
     });
+
+    return result;
 }
 
 function isValidSubstitution(previous, current, left, right, index) {
