@@ -8,17 +8,21 @@ const {
 
 const {
     logIndent,
-    assertIsEqualJson,
+    assertIsEqual,
+    readFile,
 } = require('../../../utilities/all');
 
 logIndent(__filename, context => {
-    let directory = './tests/t1/';
+    let directory = './tests/t6/';
     let testGrammar = path.join(directory, 'actual.g');
     fs.copyFileSync(path.join(directory, 'input.g'), testGrammar);
 
     prover(testGrammar);
 
-    let grammar = loadGrammar(testGrammar);
+    // Ensure grammar is valid
+    loadGrammar(testGrammar);
 
-    assertIsEqualJson(() => grammar.rules, [{"left":"a","right":"aa"},{"left":"a","right":"aaa"},{"left":"a","right":"aaaa"}]);
+    let text = readFile(testGrammar);
+    let expected = readFile(path.join(directory, 'expected.g'))
+    assertIsEqual(text, expected);
 });

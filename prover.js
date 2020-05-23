@@ -19,6 +19,7 @@ const {
     formatFile,
     removeRedundantProofs,
     removeGoal,
+    trimProofs,
 } = require('./grammars');
 
 module.exports = prover;
@@ -31,6 +32,7 @@ function prover(file) {
         let provedGoals = 0;
         let skippedGoals = 0;
         while (changed) {
+            merge(context, {step: 'starting loop'});
             let grammar = loadGrammar(file);
     
             changed = false;
@@ -74,6 +76,10 @@ function prover(file) {
             });
     
             max3ProofSteps(file);
+            formatFile(file);
+
+            trimProofs(file);
+            formatFile(file);
 
             removeRedundantProofs(file);
             formatFile(file);

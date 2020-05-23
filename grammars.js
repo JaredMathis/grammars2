@@ -14,6 +14,8 @@ const {
     arrayLast,
     appendFileLine,
     assertIsEqual,
+    arrayAll,
+    arraySome,
 } = require('./../utilities/all');
 
 const fs = require('fs');
@@ -31,6 +33,7 @@ module.exports = {
     max3ProofSteps,
     formatFile,
     removeRedundantProofs,
+    trimProofs,
 };
 
 function loadGrammar(fileName) {
@@ -64,6 +67,7 @@ function lineIsProofStep(line) {
 }
 
 function lineIsRule(line) {
+    let result;
     logIndent(lineIsRule.name, context => {
         assert(() => isString(line));
 
@@ -72,11 +76,13 @@ function lineIsRule(line) {
             return false;
         }
 
-        return {
+        result ={
             left: parts[0],
             right: parts[1],
         }
     })
+
+    return result;
 }
 
 function lineIsGoal(line) {
@@ -218,6 +224,10 @@ function isValidProof(rules, proof) {
         merge(context, {proof});
 
         assert(() => isArray(rules));
+        assert(() => isArray(proof));
+        loop(proof, step => {
+            assertIsProofStep(step);
+        })
 
         merge(context, {step:'processing proof steps'});
         loop(range(proof.length - 1, 1), (currentIndex) => {
@@ -629,15 +639,17 @@ function removeRedundantProofs(fileName) {
     logIndent(removeRedundantProofs.name, context => {
         merge(context, {fileName});
 
+        merge(context, {step:'reading file'});
         let fileContents = readFile(fileName);
         let lines = getLines(fileContents);
 
         let proof = [];
         let rules = [];
+        merge(context, {step:'processing lines'});
         loop(lines, line => {
             let rule;
             if (rule = lineIsRule(line)) {
-                rules.add(rule);
+                rules.push(rule);
             }
             if (lineIsProofStep(line)) {
                 proof.push(line);
@@ -653,28 +665,127 @@ function removeRedundantProofs(fileName) {
         overwriteFile(fileName, result);   
 
         function processProof() {
-            if (proof.length === 0) {
-                return;
-            }
-            
-            /** Omit the proof if it's provable in two-steps */
-            let shorter = [proof[0], arrayLast(proof)];
-            let valid = isValidProof(rules, shorter);
-            if (log) console.log({shorter,valid});
-            if (valid) {
+            logIndent(processProof.name, context => {
+                if (proof.length === 0) {
+                    return;
+                }
+                
+                /** Omit the proof if it's provable in two-steps */
+                let shorter = [proof[0], arrayLast(proof)];
+                let valid = isValidProof(rules, shorter);
+                if (log) console.log({shorter,valid});
+                if (valid) {
+                    // Clear proof buffer
+                    proof = [];
+                    return;
+                }
+
+                rules.push({left: proof[0], right: arrayLast(proof)});
+
+                loop(proof, p=>{
+                    result.push(p);
+                });
+
                 // Clear proof buffer
                 proof = [];
+            });
+        }     
+    });
+}
+
+function trimProofs(fileName) {
+    let log = false;
+    let result = [];
+    logIndent(trimProofs.name, context => {
+        merge(context, {fileName});
+
+        let fileContents = readFile(fileName);
+        let lines = getLines(fileContents);
+
+        let proof = [];
+        let rules = [];
+        let foundRule = false;
+        merge(context, {lines0:lines[0]});
+        loop(lines, line => {
+            let rule;
+            if (rule = lineIsRule(line)) {
+                foundRule = true;
+                rules.push(rule);
+            }
+            if (lineIsProofStep(line)) {
+                assert(() => foundRule);
+                proof.push(line);
                 return;
             }
 
-            rules.push({left: proof[0], right: arrayLast(proof)});
+            processProof();
 
-            loop(proof, p=>{
-                result.push(p);
+            result.push(line);
+        });
+        processProof();
+
+        overwriteFile(fileName, result);   
+
+        function processProof() {
+            logIndent(processProof.name, context => {
+                merge(context, {proof});
+                if (proof.length === 0) {
+                    return;
+                }
+
+                assert(() => rules.length >= 1);
+
+                // When we shorten the proof, the original
+                // proof still needs to be derivable.
+                let target = [proof[0], arrayLast(proof)];
+
+                let i = 0;
+                let changed = true;
+                while (changed) {
+                    changed = false;
+                    i++;
+
+                    let last = arrayLast(proof[0]);
+                    if (arrayAll(proof, step => arrayLast(step) === last)) {
+                        // Need at least 1 symbol.
+                        if (arraySome(proof, step => step.length - i === 0)) {
+                            break;
+                        }
+                        let trimmed = proof.map(step => step.substring(0, step.length - i));
+                        if (isValidProof(rules, trimmed)) {
+                            rules.push({left: trimmed[0], right: arrayLast(trimmed)});
+        
+                            if (!isValidProof(rules, target)) {
+                                rules.pop();
+                            } else {
+                                changed = true;
+                                merge(context, {trimmed});
+                                if (log) console.log({proof, trimmed});
+                                loop(trimmed, p=>{
+                                    result.push(p);
+                                });
+                                result.push('');
+                            }
+                        }
+                    }
+                }
+                
+
+                // Maybe this will fail if proofs cannot
+                // be trimmed like this
+                merge(context, {rules});
+                merge(context, {proof});
+                assert(() => isValidProof(rules, proof));
+
+                rules.push({left: proof[0], right: arrayLast(proof)});
+
+                loop(proof, p=>{
+                    result.push(p);
+                });
+
+                // Clear proof buffer
+                proof = [];
             });
-
-            // Clear proof buffer
-            proof = [];
         }     
     });
 }

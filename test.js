@@ -11,6 +11,9 @@ require('./tests/t3/test.js');
 require('./tests/t2/test.js');
 require('./tests/t4/test.js');
 require('./tests/t5/test.js');
+require('./tests/t6/test.js');
+require('./tests/t7/test.js');
+require('./tests/t8/test.js');
 
 
 

@@ -16,6 +16,7 @@ logIndent(__filename, context => {
     let grammars = [
         'a',
         'grow',
+        'find',
     ];
 
     loop(grammars, g => {
