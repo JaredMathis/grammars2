@@ -1,5 +1,5 @@
 const {
-    logIndent,
+    scope,
     assert,
     isDefined,
     isArray,
@@ -11,7 +11,7 @@ const {
     loadGrammar,
 } = require('../grammars');
 
-logIndent(__filename, context => {
+scope(__filename, context => {
     let g = loadGrammar('grammars/a.g');
     merge(context, {g});
     assert(() => isDefined(g));

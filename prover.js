@@ -1,5 +1,5 @@
 const {
-    logIndent,
+    scope,
     assert,
     loop,
     isDefined,
@@ -25,7 +25,7 @@ const {
 module.exports = prover;
 
 function prover(file) {
-    logIndent(prover.name, context => {
+    scope(prover.name, context => {
         let log = false;
     
         let provedGoal = true;

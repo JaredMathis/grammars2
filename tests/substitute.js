@@ -1,5 +1,5 @@
 const {
-    logIndent,
+    scope,
     assert,
     isDefined,
     isArray,
@@ -13,7 +13,7 @@ const {
     substitute,
 } = require('../grammars');
 
-logIndent(__filename, context => {
+scope(__filename, context => {
 
     assertIsEqual(() => substitute('a', 'b', 'cad', 0), false);
     assertIsEqual(() => substitute('a', 'b', 'cad', 1), 'cbd');

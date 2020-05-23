@@ -1,6 +1,6 @@
 const {
     assert,
-    logIndent,
+    scope,
     merge,
     loop,
     readFile,
@@ -41,7 +41,7 @@ module.exports = {
 function loadGrammar(fileName) {
     let grammar;
 
-    logIndent(loadGrammar.name, context => {
+    scope(loadGrammar.name, context => {
         merge(context, {fileName});
         const fileContents = readFile(fileName);
         grammar = assertIsValidGrammarFile(fileContents);
@@ -54,7 +54,7 @@ const goalToken = "#goal";
 
 function getLines(s) {
     let lines;
-    logIndent(getLines.name, context => {
+    scope(getLines.name, context => {
         assert(() => isString(s));
 
         lines = s.split(`
@@ -70,7 +70,7 @@ function lineIsProofStep(line) {
 
 function lineIsRule(line) {
     let result;
-    logIndent(lineIsRule.name, context => {
+    scope(lineIsRule.name, context => {
         assert(() => isString(line));
 
         let parts = line.split(' ');
@@ -90,7 +90,7 @@ function lineIsRule(line) {
 function lineIsGoal(line) {
     let goal;
 
-    logIndent(lineIsRule.name, context => {
+    scope(lineIsRule.name, context => {
         assert(() => isString(line));
 
         if (!line.startsWith(goalToken)) {
@@ -117,7 +117,7 @@ function assertIsValidGrammarFile(fileContents) {
     let proof;
     let grammar;
 
-    logIndent(assertIsValidGrammarFile.name, context => {
+    scope(assertIsValidGrammarFile.name, context => {
         grammar = {};
         grammar.rules = [];
         grammar.goals = [];
@@ -172,7 +172,7 @@ function assertIsValidGrammarFile(fileContents) {
         });
 
         function checkProof() {
-            logIndent(checkProof.name, context => {
+            scope(checkProof.name, context => {
                 if (log) console.log('checkProof entered', {proof});
                 // If proof is empty, nothing to check
                 if (proof.length === 0) {
@@ -201,13 +201,13 @@ function assertIsValidGrammarFile(fileContents) {
 }
 
 function assertIsProofStep(step) {
-    logIndent(assertIsProofStep.name, context => {
+    scope(assertIsProofStep.name, context => {
         assert(() => isString(step));
     });
 }
 
 function assertIsProof(proof) {
-    logIndent(assertIsProof.name, context => {
+    scope(assertIsProof.name, context => {
         merge(context, {proof});
 
         assert(() => isArray(proof));
@@ -221,7 +221,7 @@ function isValidProof(rules, proof) {
     let result = true;
     let log = false;
     if (log) console.log('isValidProof entered', {rules, proof});
-    logIndent(isValidProof.name, context => {
+    scope(isValidProof.name, context => {
         merge(context, {rules});
         merge(context, {proof});
 
@@ -279,7 +279,7 @@ function isValidSubstitution(previous, current, left, right, index) {
     if (log) console.log('isValidSubstitution entered', {previous, current, left, right, index});
 
     let result = {};
-    logIndent(isValidSubstitution.name, context => {
+    scope(isValidSubstitution.name, context => {
         merge(context, {previous});
         merge(context, {current});
         merge(context, {left});
@@ -343,7 +343,7 @@ function isValidSubstitution(previous, current, left, right, index) {
 function substitute(left, right, previous, index) {
     let result;
 
-    logIndent(substitute.name, context=> {
+    scope(substitute.name, context=> {
         merge(context, {left});
         merge(context, {right});
         merge(context, {previous});
@@ -377,7 +377,7 @@ function substitute(left, right, previous, index) {
 }
 
 function assertIsGrammarRules(rules) {
-    logIndent(assertIsGrammarRules.name, context => {
+    scope(assertIsGrammarRules.name, context => {
         merge(context, {rules});
         assert(() => isArray(rules));
         loop(rules, r => {
@@ -392,7 +392,7 @@ function prove(rules, start, goal, depth, proof) {
     let log = false;
     if (log) console.log('prove entered', {depth});
     let found = false;
-    logIndent(prove.name, context => {
+    scope(prove.name, context => {
         merge(context, {rules});
         merge(context, {start});
         merge(context, {goal});
@@ -455,7 +455,7 @@ function prove(rules, start, goal, depth, proof) {
 }
 
 function addProofToFile(file, proof) {
-    logIndent(addProofToFile.name, context => {
+    scope(addProofToFile.name, context => {
         // Add the proof.
         appendFileLine(file);
         loop(proof, p => {
@@ -484,7 +484,7 @@ function overwriteFile(file, lines) {
 }
 
 function removeGoal(file, left, right) {
-    logIndent(removeGoal.name, context => {
+    scope(removeGoal.name, context => {
         merge(context, {file});
         merge(context, {left});
         merge(context, {right});
@@ -522,7 +522,7 @@ function removeGoal(file, left, right) {
 function breakUpProof(proof) {
     let log = false;
     let result = [];
-    logIndent(breakUpProof.name, context => {
+    scope(breakUpProof.name, context => {
         merge(context, {proof});
         // over 9 is untested
         assert(() => proof.length <= 9);
@@ -570,7 +570,7 @@ function breakUpProof(proof) {
 
 function max3ProofSteps(file) {
     let result = [];
-    logIndent(max3ProofSteps.name, context => {
+    scope(max3ProofSteps.name, context => {
         // Make sure proofs are valid.
         loadGrammar(file);
 
@@ -638,7 +638,7 @@ function formatFile(file) {
 function removeRedundantProofs(fileName) {
     let log = false;
     let result = [];
-    logIndent(removeRedundantProofs.name, context => {
+    scope(removeRedundantProofs.name, context => {
         merge(context, {fileName});
 
         merge(context, {step:'reading file'});
@@ -667,7 +667,7 @@ function removeRedundantProofs(fileName) {
         overwriteFile(fileName, result);   
 
         function processProof() {
-            logIndent(processProof.name, context => {
+            scope(processProof.name, context => {
                 if (proof.length === 0) {
                     return;
                 }
@@ -700,7 +700,7 @@ function trimProofs(fileName) {
     if (log) console.log('trimProofs entered');
 
     let anyChanged = false;
-    logIndent(trimProofs.name, context => {
+    scope(trimProofs.name, context => {
         merge(context, {fileName});
 
         let fileContents = readFile(fileName);
@@ -732,7 +732,7 @@ function trimProofs(fileName) {
         overwriteFile(fileName, newLines);   
 
         function processProof() {
-            logIndent(processProof.name, context => {
+            scope(processProof.name, context => {
                 merge(context, {proof});
                 if (proof.length === 0) {
                     return;

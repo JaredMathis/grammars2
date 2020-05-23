@@ -8,12 +8,12 @@ const {
  } = require('../../../grammars');
 
 const {
-    logIndent,
+    scope,
     assertIsEqual,
     readFile,
 } = require('../../../../utilities/all');
 
-logIndent(__filename, context => {
+scope(__filename, context => {
     let testDirectory = './tests/groups';
     let directory = path.join(testDirectory, 't3');
     let testGrammar = path.join(directory, 'actual.g');

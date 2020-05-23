@@ -17,6 +17,7 @@ require('./tests/groups/t11/test.js');
 require('./tests/groups/t8/test.js');
 require('./tests/groups/t10/test.js');
 require('./tests/groups/t9/test.js');
+require('./tests/groups/t12/test.js');
 
 
 

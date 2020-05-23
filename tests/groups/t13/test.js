@@ -14,7 +14,7 @@ const {
 
 scope(__filename, context => {
     let testDirectory = './tests/groups';
-    let directory = path.join(testDirectory, 't8');
+    let directory = path.join(testDirectory, 't13');
     let testGrammar = path.join(directory, 'actual.g');
     fs.copyFileSync(path.join(directory, 'input.g'), testGrammar);
 

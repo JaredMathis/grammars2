@@ -1,5 +1,5 @@
 const {
-    logIndent,
+    scope,
     assert,
     isDefined,
     isArray,
@@ -13,7 +13,7 @@ const {
     isValidSubstitution,
 } = require('../grammars');
 
-logIndent(__filename, context => {
+scope(__filename, context => {
     let i = 0;
     merge(context, {i:i++});
     assertIsEqualJson(isValidSubstitution('abc', 'adc', 'b', 'd', 1), {"valid":true});

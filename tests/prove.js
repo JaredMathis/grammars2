@@ -1,5 +1,5 @@
 const {
-    logIndent,
+    scope,
     assert,
     isDefined,
     isArray,
@@ -13,7 +13,7 @@ const {
     prove,
 } = require('../grammars');
 
-logIndent(__filename, context => {
+scope(__filename, context => {
     let rules;
 
     rules = [{left:'a',right:'aa'},{left:'a',right:'b'}];

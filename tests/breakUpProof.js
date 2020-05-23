@@ -1,5 +1,5 @@
 const {
-    logIndent,
+    scope,
     assert,
     isDefined,
     isArray,
@@ -14,7 +14,7 @@ const {
     breakUpProof,
 } = require('../grammars');
 
-logIndent(__filename, context => {
+scope(__filename, context => {
     let proof;
     
     assertIsEqualJson(() => breakUpProof([`1`,`2`,`3`]), [["1","2","3"]]);
