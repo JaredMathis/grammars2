@@ -14,10 +14,11 @@ const {
 const {
     loadGrammar,
     prove,
-    addProof,
+    addProofToFile,
     max3ProofSteps,
     formatFile,
     removeRedundantProofs,
+    removeGoal,
 } = require('./grammars');
 
 module.exports = prover;
@@ -27,7 +28,8 @@ function prover(file) {
         let log = false;
     
         let changed = true;
-    
+        let provedGoals = 0;
+        let skippedGoals = 0;
         while (changed) {
             let grammar = loadGrammar(file);
     
@@ -41,8 +43,19 @@ function prover(file) {
                 loop(range(maxDepth, 1), depth => {
                     proof = prove(grammar.rules, goal.left, goal.right, depth);
                     if (proof !== false) {
-                        found = true;
-                        return;
+                        // The goal is proved in two steps; it doesn't
+                        // need to be its own proof. Remove the goal.
+                        if (proof.length === 2) {
+                            removeGoal(file, goal.left, goal.right);
+                            skippedGoals++;
+                            merge(context, {skippedGoals});
+                        } else {
+                            found = true;
+                            provedGoals++;
+                            merge(context, {provedGoals});
+                        }
+
+                        return true;
                     }
                 });
     
@@ -52,8 +65,9 @@ function prover(file) {
                     merge(context, {step: 'proved goal'});
                     if (log) console.log('proved goal', { goal });
     
-                    addProof(file, proof);
+                    addProofToFile(file, proof);
                     merge(context, {step: 'added proof goal'});
+                    return true;
                 } else {
                     if (log) console.log('did not yet prove goal', { goal });
                 }

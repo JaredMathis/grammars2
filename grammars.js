@@ -25,7 +25,7 @@ module.exports = {
     assertIsValidGrammarFile,
     substitute,
     prove,
-    addProof,
+    addProofToFile,
     removeGoal,
     breakUpProof,
     max3ProofSteps,
@@ -442,8 +442,8 @@ function prove(rules, start, goal, depth, proof) {
     return false;
 }
 
-function addProof(file, proof) {
-    logIndent(addProof.name, context => {
+function addProofToFile(file, proof) {
+    logIndent(addProofToFile.name, context => {
         // Add the proof.
         appendFileLine(file);
         loop(proof, p => {
