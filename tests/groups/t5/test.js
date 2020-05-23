@@ -1,19 +1,20 @@
 const fs = require('fs');
 const path = require('path');
 
-const prover = require('../../prover');
+const prover = require('../../../prover');
 const {
     loadGrammar,
- } = require('../../grammars');
+ } = require('../../../grammars');
 
 const {
     logIndent,
     assertIsEqual,
     readFile,
-} = require('../../../utilities/all');
+} = require('../../../../utilities/all');
 
 logIndent(__filename, context => {
-    let directory = './tests/t5/';
+    let testDirectory = './tests/groups';
+    let directory = path.join(testDirectory, 't5');
     let testGrammar = path.join(directory, 'actual.g');
     fs.copyFileSync(path.join(directory, 'input.g'), testGrammar);
 

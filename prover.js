@@ -26,16 +26,16 @@ module.exports = prover;
 
 function prover(file) {
     logIndent(prover.name, context => {
-        let log = false;
+        let log = true;
     
-        let changed = true;
+        let provedGoal = true;
         let provedGoals = 0;
         let skippedGoals = 0;
-        while (changed) {
+        while (provedGoal) {
             merge(context, {step: 'starting loop'});
             let grammar = loadGrammar(file);
     
-            changed = false;
+            provedGoal = false;
     
             let maxDepth = 8;
             loop(grammar.goals, goal=> {
@@ -62,6 +62,7 @@ function prover(file) {
                 });
     
                 if (found) {
+                    provedGoal = true;
                     changed = true;
                     merge(context, {proof});
                     merge(context, {step: 'proved goal'});
@@ -78,7 +79,9 @@ function prover(file) {
             max3ProofSteps(file);
             formatFile(file);
 
-            trimProofs(file);
+            if (trimProofs(file)) {
+                changed = true;
+            }
             formatFile(file);
 
             removeRedundantProofs(file);

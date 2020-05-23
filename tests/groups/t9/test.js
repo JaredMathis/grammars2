@@ -13,7 +13,7 @@ const {
 } = require('../../../utilities/all');
 
 logIndent(__filename, context => {
-    let directory = './tests/t2/';
+    let directory = './tests/t9/';
     let testGrammar = path.join(directory, 'actual.g');
     fs.copyFileSync(path.join(directory, 'input.g'), testGrammar);
 

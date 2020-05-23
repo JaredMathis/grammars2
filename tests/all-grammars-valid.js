@@ -17,6 +17,7 @@ logIndent(__filename, context => {
         'a',
         'grow',
         'find',
+        'increment',
     ];
 
     loop(grammars, g => {

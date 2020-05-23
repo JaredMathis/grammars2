@@ -16,6 +16,7 @@ const {
     assertIsEqual,
     arrayAll,
     arraySome,
+    stringSuffix,
 } = require('./../utilities/all');
 
 const fs = require('fs');
@@ -34,6 +35,7 @@ module.exports = {
     formatFile,
     removeRedundantProofs,
     trimProofs,
+    
 };
 
 function loadGrammar(fileName) {
@@ -694,13 +696,16 @@ function removeRedundantProofs(fileName) {
 }
 
 function trimProofs(fileName) {
-    let log = false;
-    let result = [];
+    let log = true;
+    if (log) console.log('trimProofs entered');
+
+    let anyChanged = false;
     logIndent(trimProofs.name, context => {
         merge(context, {fileName});
 
         let fileContents = readFile(fileName);
         let lines = getLines(fileContents);
+        let newLines = [];
 
         let proof = [];
         let rules = [];
@@ -720,11 +725,11 @@ function trimProofs(fileName) {
 
             processProof();
 
-            result.push(line);
+            newLines.push(line);
         });
         processProof();
 
-        overwriteFile(fileName, result);   
+        overwriteFile(fileName, newLines);   
 
         function processProof() {
             logIndent(processProof.name, context => {
@@ -732,6 +737,7 @@ function trimProofs(fileName) {
                 if (proof.length === 0) {
                     return;
                 }
+                if (log) console.log('trimProofs processProof entered', { proof });
 
                 assert(() => rules.length >= 1);
 
@@ -739,38 +745,62 @@ function trimProofs(fileName) {
                 // proof still needs to be derivable.
                 let target = [proof[0], arrayLast(proof)];
 
-                let i = 0;
-                let changed = true;
-                while (changed) {
-                    changed = false;
-                    i++;
+                let trimRight = (step, i) => step.substring(0, step.length - i);
+                let trimLeft = (step, i) => step.substring(i);
+                let lastAllSame = (i) =>  {
+                    return arrayAll(proof, step => {
+                        let left = stringSuffix(step, i);
+                        let right = stringSuffix(proof[0], i);
+                        if (log) console.log({left,right,i});
+                        return left === right;
+                    }); 
+                };
+                let firstAllSame = (i) => arrayAll(proof, step => step.substring(0, i) === proof[0].substring(0, i));
 
-                    let last = arrayLast(proof[0]);
-                    if (arrayAll(proof, step => arrayLast(step) === last)) {
-                        // Need at least 1 symbol.
-                        if (arraySome(proof, step => step.length - i === 0)) {
+                loop([{ predicate: firstAllSame, trim: trimLeft },
+                    { predicate: lastAllSame, trim: trimRight },], t => {
+                    let i = 0;
+                    if (log) console.log({ predicate: t.predicate.name })
+
+                    // Keep trimming
+                    let changed = true;
+                    while (changed) {
+                        changed = false;
+                        i++;
+
+                        // We would be trimming more characters than what exist for 
+                        // some proof step.
+                        if (arraySome(proof, step => step.length <= i)) {
                             break;
                         }
-                        let trimmed = proof.map(step => step.substring(0, step.length - i));
-                        if (isValidProof(rules, trimmed)) {
-                            rules.push({left: trimmed[0], right: arrayLast(trimmed)});
-        
-                            if (!isValidProof(rules, target)) {
-                                rules.pop();
-                            } else {
-                                changed = true;
-                                merge(context, {trimmed});
-                                if (log) console.log({proof, trimmed});
-                                loop(trimmed, p=>{
-                                    result.push(p);
-                                });
-                                result.push('');
+
+                        if (t.predicate(i)) {
+                            let trimmed = proof.map(step => t.trim(step, i));
+                            if (log) console.log('trimProofs processProof trimmed', { trimmed });
+
+                            if (isValidProof(rules, trimmed)) {
+                                rules.push({left: trimmed[0], right: arrayLast(trimmed)});
+            
+                                if (!isValidProof(rules, target)) {
+                                    rules.pop();
+                                } else {
+                                    // Proof can be trimmed
+                                    changed = true;
+                                    anyChanged = true;
+                                    merge(context, {trimmed});
+                                    if (log) console.log({proof, trimmed});
+                                    loop(trimmed, p=>{
+                                        newLines.push(p);
+                                    });
+                                    newLines.push('');
+                                }
                             }
+                        } else {
+                            if (log) console.log('trimProofs processProof predicate failed');
                         }
                     }
-                }
+                });
                 
-
                 // Maybe this will fail if proofs cannot
                 // be trimmed like this
                 merge(context, {rules});
@@ -780,12 +810,14 @@ function trimProofs(fileName) {
                 rules.push({left: proof[0], right: arrayLast(proof)});
 
                 loop(proof, p=>{
-                    result.push(p);
+                    newLines.push(p);
                 });
 
                 // Clear proof buffer
                 proof = [];
             });
-        }     
+        }
     });
+
+    return anyChanged;
 }
