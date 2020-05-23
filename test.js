@@ -9,6 +9,7 @@ require('./tests/all-grammars-valid.js');
 require('./tests/t1/test.js');
 require('./tests/t3/test.js');
 require('./tests/t2/test.js');
+require('./tests/t4/test.js');
 
 
 
