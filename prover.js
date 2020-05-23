@@ -60,8 +60,8 @@ function prover(file) {
             });
     
             max3ProofSteps(file);
+
             removeRedundantProofs(file);
-    
             formatFile(file);
         }
     });

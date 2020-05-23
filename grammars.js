@@ -79,6 +79,24 @@ function lineIsRule(line) {
     })
 }
 
+function lineIsGoal(line) {
+    let goal;
+
+    logIndent(lineIsRule.name, context => {
+        assert(() => isString(line));
+
+        if (!line.startsWith(goalToken)) {
+            return false;
+        }
+
+        let parts = line.split(' ');
+        let goalParts = parts.slice(1);
+        assert(() => goalParts.length === 2);
+        goal = {left: goalParts[0], right: goalParts[1]}; 
+    });
+    return goal;
+}
+
 /**
  * Checks for proof correctness,
  * Checks for... TODO
@@ -108,10 +126,9 @@ function assertIsValidGrammarFile(fileContents) {
 
             let parts = line.split(' ');
 
-            if (line.startsWith(goalToken)) {
-                let goal = parts.slice(1);
-                assert(() => goal.length === 2);
-                grammar.goals.push({left: goal[0], right: goal[1]});
+            let goal;
+            if (goal = lineIsGoal(line)) {
+                grammar.goals.push(goal);
                 return;
             }
 
@@ -145,34 +162,34 @@ function assertIsValidGrammarFile(fileContents) {
                 assert(() => !goalAlreadyProved);
             });
         });
+
+        function checkProof() {
+            logIndent(checkProof.name, context => {
+                if (log) console.log('checkProof entered', {proof});
+                // If proof is empty, nothing to check
+                if (proof.length === 0) {
+                    return;
+                }
+        
+                // If the proof is derivable from just first and last steps from previous
+                // proofs, then this proof is redundant.
+                let redundant = isValidProof(grammar.rules, [proof[0], arrayLast(proof)]);
+                merge(context, {proof});
+                assert(() => !redundant);
+        
+                let valid = isValidProof(grammar.rules, proof);
+                assert(() => valid);
+        
+                // Add the first and last step of the proof as a new grammar rule.
+                grammar.rules.push({left: proof[0], right: arrayLast(proof)});
+        
+                // Reset the proof.
+                proof = [];
+            });
+        }
     });
 
     return grammar;
-
-    function checkProof() {
-        logIndent(checkProof.name, context => {
-            if (log) console.log('checkProof entered', {proof});
-            // If proof is empty, nothing to check
-            if (proof.length === 0) {
-                return;
-            }
-    
-            // If the proof is derivable from just first and last steps from previous
-            // proofs, then this proof is redundant.
-            let redundant = isValidProof(grammar.rules, [proof[0], arrayLast(proof)]);
-            merge(context, {proof});
-            assert(() => !redundant);
-    
-            let valid = isValidProof(grammar.rules, proof);
-            assert(() => valid);
-    
-            // Add the first and last step of the proof as a new grammar rule.
-            grammar.rules.push({left: proof[0], right: arrayLast(proof)});
-    
-            // Reset the proof.
-            proof = [];
-        });
-    }
 }
 
 function assertIsProofStep(step) {
