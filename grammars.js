@@ -63,6 +63,27 @@ function lineIsProofStep(line) {
     return line.length > 0 && line.indexOf(' ') < 0;
 }
 
+function lineIsRule(line) {
+    logIndent(lineIsRule.name, context => {
+        assert(() => isString(line));
+
+        let parts = line.split(' ');
+        if (parts.length !== 2) {
+            return false;
+        }
+
+        return {
+            left: parts[0],
+            right: parts[1],
+        }
+    })
+}
+
+/**
+ * Checks for proof correctness,
+ * Checks for... TODO
+ * @param {*} fileContents 
+ */
 function assertIsValidGrammarFile(fileContents) {
     let log = false;
     if (log) console.log('assertIsValidGrammarFile entered');
@@ -585,43 +606,58 @@ function formatFile(file) {
     overwriteFile(file, result);
 }
 
-function removeRedundantProofs(file) {
-    return;
+function removeRedundantProofs(fileName) {
+    let log = false;
     let result = [];
-    logIndent(max3ProofSteps.name, context => {
-        // Make sure proofs are valid.
-        loadGrammar(file);
+    logIndent(removeRedundantProofs.name, context => {
+        merge(context, {fileName});
 
-        let fileContents = readFile(file);
+        let fileContents = readFile(fileName);
         let lines = getLines(fileContents);
 
         let proof = [];
+        let rules = [];
         loop(lines, line => {
+            let rule;
+            if (rule = lineIsRule(line)) {
+                rules.add(rule);
+            }
             if (lineIsProofStep(line)) {
                 proof.push(line);
                 return;
-            } else {
-                result.push(line);
             }
 
             processProof();
+
+            result.push(line);
         });
         processProof();
+
+        overwriteFile(fileName, result);   
 
         function processProof() {
             if (proof.length === 0) {
                 return;
             }
+            
+            /** Omit the proof if it's provable in two-steps */
             let shorter = [proof[0], arrayLast(proof)];
-            if (isValidProof(rules, shorter)) {
+            let valid = isValidProof(rules, shorter);
+            if (log) console.log({shorter,valid});
+            if (valid) {
+                // Clear proof buffer
+                proof = [];
                 return;
             }
+
+            rules.push({left: proof[0], right: arrayLast(proof)});
 
             loop(proof, p=>{
                 result.push(p);
             });
-        }
 
-        overwriteFile(file, result);        
+            // Clear proof buffer
+            proof = [];
+        }     
     });
 }
