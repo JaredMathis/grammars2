@@ -26,7 +26,7 @@ module.exports = prover;
 
 function prover(file) {
     logIndent(prover.name, context => {
-        let log = true;
+        let log = false;
     
         let provedGoal = true;
         let provedGoals = 0;

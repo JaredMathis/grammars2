@@ -696,7 +696,7 @@ function removeRedundantProofs(fileName) {
 }
 
 function trimProofs(fileName) {
-    let log = true;
+    let log = false;
     if (log) console.log('trimProofs entered');
 
     let anyChanged = false;
