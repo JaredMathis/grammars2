@@ -15,21 +15,21 @@ const {
 module.exports = prover;
 
 function prover(file) {
-    u.scope(prover.name, context => {
+    u.scope(prover.name, x => {
         let log = false;
     
         let provedGoal = true;
         let provedGoals = 0;
         let skippedGoals = 0;
         while (provedGoal) {
-            u.merge(context, {step: 'starting loop'});
+            u.merge(x, {step: 'starting loop'});
             let grammar = loadGrammar(file);
     
             provedGoal = false;
     
             let maxDepth = 8;
             u.loop(grammar.goals, goal=> {
-                u.merge(context, {step: 'proving goal'});
+                u.merge(x, {step: 'proving goal'});
                 let found = false;
                 let proof;
                 u.loop(u.range(maxDepth, 1), depth => {
@@ -40,11 +40,11 @@ function prover(file) {
                         if (proof.length === 2) {
                             removeGoal(file, goal.left, goal.right);
                             skippedGoals++;
-                            u.merge(context, {skippedGoals});
+                            u.merge(x, {skippedGoals});
                         } else {
                             found = true;
                             provedGoals++;
-                            u.merge(context, {provedGoals});
+                            u.merge(x, {provedGoals});
                         }
 
                         return true;
@@ -54,12 +54,12 @@ function prover(file) {
                 if (found) {
                     provedGoal = true;
                     changed = true;
-                    u.merge(context, {proof});
-                    u.merge(context, {step: 'proved goal'});
+                    u.merge(x, {proof});
+                    u.merge(x, {step: 'proved goal'});
                     if (log) console.log('proved goal', { goal });
     
                     addProofToFile(file, proof);
-                    u.merge(context, {step: 'added proof goal'});
+                    u.merge(x, {step: 'added proof goal'});
                     return true;
                 } else {
                     if (log) console.log('did not yet prove goal', { goal });
