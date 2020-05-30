@@ -6,11 +6,7 @@ const {
     loadGrammar,
  } = require('../../../grammars');
 
-const {
-    scope,
-    assertIsEqual,
-    readFile,
-} = require('../../../../utilities/all');
+const u = require('wlj-utilities');
 
 u.scope(__filename, context => {
     let testDirectory = './tests/groups';
