@@ -7,13 +7,9 @@ const {
     formatFile,
  } = require('../../../grammars');
 
-const {
-    scope,
-    assertIsEqual,
-    readFile,
-} = require('../../../../utilities/all');
+const u = require('wlj-utilities');
 
-scope(__filename, context => {
+u.scope(__filename, context => {
     let testDirectory = './tests/groups';
     let directory = path.join(testDirectory, 't3');
     let testGrammar = path.join(directory, 'actual.g');
@@ -25,7 +21,7 @@ scope(__filename, context => {
     // Ensure grammar is valid
     loadGrammar(testGrammar);
 
-    let text = readFile(testGrammar);
-    let expected = readFile(path.join(directory, 'expected.g'))
-    assertIsEqual(text, expected);
+    let text = u.readFile(testGrammar);
+    let expected = u.readFile(path.join(directory, 'expected.g'))
+    u.assertIsEqual(text, expected);
 });

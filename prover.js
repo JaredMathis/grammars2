@@ -1,15 +1,4 @@
-const {
-    scope,
-    assert,
-    loop,
-    isDefined,
-    isArray,
-    merge,
-    isEqualJson,
-    assertIsEqualJson,
-    throws,
-    range,
-} = require('../utilities/all');
+const u = require('wlj-utilities');
 
 const {
     loadGrammar,
@@ -25,24 +14,24 @@ const {
 module.exports = prover;
 
 function prover(file) {
-    scope(prover.name, context => {
+    u.scope(prover.name, context => {
         let log = false;
     
         let provedGoal = true;
         let provedGoals = 0;
         let skippedGoals = 0;
         while (provedGoal) {
-            merge(context, {step: 'starting loop'});
+            u.merge(context, {step: 'starting loop'});
             let grammar = loadGrammar(file);
     
             provedGoal = false;
     
             let maxDepth = 8;
-            loop(grammar.goals, goal=> {
-                merge(context, {step: 'proving goal'});
+            u.loop(grammar.goals, goal=> {
+                u.merge(context, {step: 'proving goal'});
                 let found = false;
                 let proof;
-                loop(range(maxDepth, 1), depth => {
+                u.loop(u.range(maxDepth, 1), depth => {
                     proof = prove(grammar.rules, goal.left, goal.right, depth);
                     if (proof !== false) {
                         // The goal is proved in two steps; it doesn't
@@ -50,11 +39,11 @@ function prover(file) {
                         if (proof.length === 2) {
                             removeGoal(file, goal.left, goal.right);
                             skippedGoals++;
-                            merge(context, {skippedGoals});
+                            u.merge(context, {skippedGoals});
                         } else {
                             found = true;
                             provedGoals++;
-                            merge(context, {provedGoals});
+                            u.merge(context, {provedGoals});
                         }
 
                         return true;
@@ -64,12 +53,12 @@ function prover(file) {
                 if (found) {
                     provedGoal = true;
                     changed = true;
-                    merge(context, {proof});
-                    merge(context, {step: 'proved goal'});
+                    u.merge(context, {proof});
+                    u.merge(context, {step: 'proved goal'});
                     if (log) console.log('proved goal', { goal });
     
                     addProofToFile(file, proof);
-                    merge(context, {step: 'added proof goal'});
+                    u.merge(context, {step: 'added proof goal'});
                     return true;
                 } else {
                     if (log) console.log('did not yet prove goal', { goal });

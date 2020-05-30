@@ -1,18 +1,10 @@
-const {
-    scope,
-    assert,
-    isDefined,
-    isArray,
-    merge,
-    isEqualJson,
-    loop,
-} = require('./../../utilities/all');
+const u = require('wlj-utilities');
 
 const {
     loadGrammar,
 } = require('../grammars');
 
-scope(__filename, context => {
+u.scope(__filename, context => {
     let grammars = [
         'a',
         'grow',
@@ -20,7 +12,7 @@ scope(__filename, context => {
         'increment',
     ];
 
-    loop(grammars, g => {
+    u.loop(grammars, g => {
         loadGrammar('grammars/'+g+'.g');
     }); 
 });

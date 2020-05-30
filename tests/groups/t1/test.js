@@ -6,12 +6,9 @@ const {
     loadGrammar,
  } = require('../../../grammars');
 
-const {
-    scope,
-    assertIsEqualJson,
-} = require('../../../../utilities/all');
+const u = require('wlj-utilities');
 
-scope(__filename, context => {
+u.scope(__filename, context => {
     let testDirectory = './tests/groups';
     let directory = path.join(testDirectory, 't1');
     let testGrammar = path.join(directory, 'actual.g');
@@ -21,5 +18,5 @@ scope(__filename, context => {
 
     let grammar = loadGrammar(testGrammar);
 
-    assertIsEqualJson(() => grammar.rules, [{"left":"a","right":"aa"},{"left":"a","right":"aaa"},{"left":"a","right":"aaaa"}]);
+    u.assertIsEqualJson(() => grammar.rules, [{"left":"a","right":"aa"},{"left":"a","right":"aaa"},{"left":"a","right":"aaaa"}]);
 });
