@@ -14,9 +14,14 @@ const {
 
 module.exports = prover;
 
-function prover(file) {
+function prover(file, maxDepth) {
     u.scope(prover.name, x => {
         let log = false;
+
+        if (u.isUndefined(maxDepth)) {
+            maxDepth = 8;
+        }
+        u.assert(() => u.isInteger(maxDepth));
     
         let provedGoal = true;
         let provedGoals = 0;
@@ -27,7 +32,6 @@ function prover(file) {
     
             provedGoal = false;
     
-            let maxDepth = 8;
             u.loop(grammar.goals, goal=> {
                 u.merge(x, {step: 'proving goal'});
                 let found = false;
