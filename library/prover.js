@@ -1,3 +1,4 @@
+
 const u = require('wlj-utilities');
 
 const {
@@ -9,7 +10,7 @@ const {
     removeRedundantProofs,
     removeGoal,
     trimProofs,
-} = require('./grammars');
+} = require('./../grammars');
 
 module.exports = prover;
 

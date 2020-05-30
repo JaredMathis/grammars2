@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const prover = require('../../../prover');
+const g = require('../../../index');
 const {
     loadGrammar,
     trimProofs,

@@ -23,3 +23,5 @@ require('./tests/groups/t14/test.js');
 
 
 
+
+require("./tests/prover/prover.js");

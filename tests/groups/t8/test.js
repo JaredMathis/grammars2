@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const prover = require('../../../prover');
+const g = require('../../../index');
 const {
     loadGrammar,
  } = require('../../../grammars');
@@ -14,7 +14,7 @@ u.scope(__filename, context => {
     let testGrammar = path.join(directory, 'actual.g');
     fs.copyFileSync(path.join(directory, 'input.g'), testGrammar);
 
-    prover(testGrammar);
+    g.prover(testGrammar);
 
     // Ensure grammar is valid
     loadGrammar(testGrammar);
