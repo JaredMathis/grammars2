@@ -228,7 +228,7 @@ function isValidProof(rules, proof) {
             u.loop(u.range(previous.length), previousIndex => {
                 u.loop(rules, rule => {
                     if (validStep) {
-                        return;
+                        return true;
                     }
                     let s = isValidSubstitution(
                         previous, current, rule.left, rule.right, previousIndex);
@@ -238,7 +238,7 @@ function isValidProof(rules, proof) {
                     validStep = s.valid;
                 });
                 if (validStep) {
-                    return;
+                    return true;
                 }
             });
 
