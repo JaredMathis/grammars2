@@ -202,9 +202,9 @@ function isValidProof(rules, proof) {
     let result = true;
     let log = false;
     if (log) console.log('isValidProof entered', {rules, proof});
-    u.scope(isValidProof.name, context => {
-        u.merge(context, {rules});
-        u.merge(context, {proof});
+    u.scope(isValidProof.name, x => {
+        u.merge(x, {rules});
+        u.merge(x, {proof});
 
         u.assert(() => u.isArray(rules));
         u.assert(() => u.isArray(proof));
@@ -212,15 +212,15 @@ function isValidProof(rules, proof) {
             assertIsProofStep(step);
         })
 
-        u.merge(context, {step:'processing proof steps'});
+        u.merge(x, {step:'processing proof steps'});
         u.loop(u.range(proof.length - 1, 1), (currentIndex) => {
             let validStep = false;
 
             let previousIndex = currentIndex - 1;
-            u.merge(context, {previousIndex});
+            u.merge(x, {previousIndex});
 
             let previous = proof[previousIndex];
-            u.merge(context, {previous});
+            u.merge(x, {previous});
 
             let current = proof[currentIndex];            
 
@@ -233,7 +233,7 @@ function isValidProof(rules, proof) {
                     let s = isValidSubstitution(
                         previous, current, rule.left, rule.right, previousIndex);
                     allS.push(s);
-                    u.merge(context, {s});
+                    u.merge(x, {s});
                     u.assert(() => !validStep);
                     validStep = s.valid;
                 });
@@ -242,8 +242,8 @@ function isValidProof(rules, proof) {
                 }
             });
 
-            u.merge(context, {allS});
-            u.merge(context, {validStep});
+            u.merge(x, {allS});
+            u.merge(x, {validStep});
 
             if (!validStep) {
                 result = false;
@@ -373,12 +373,12 @@ function prove(rules, start, goal, depth, proof) {
     let log = false;
     if (log) console.log('prove entered', {depth});
     let found = false;
-    u.scope(prove.name, context => {
-        u.merge(context, {rules});
-        u.merge(context, {start});
-        u.merge(context, {goal});
-        u.merge(context, {depth});
-        u.merge(context, {proof});
+    u.scope(prove.name, x => {
+        u.merge(x, {rules});
+        u.merge(x, {start});
+        u.merge(x, {goal});
+        u.merge(x, {depth});
+        u.merge(x, {proof});
 
         assertIsGrammarRules(rules);
         assertIsProofStep(start);
