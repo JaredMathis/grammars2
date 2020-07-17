@@ -10,12 +10,12 @@ const {
     removeRedundantProofs,
     removeGoal,
     trimProofs,
-} = require('./../grammars');
+} = require('../grammars');
 
-module.exports = prover;
+module.exports = loadAndProver;
 
-function prover(file, maxDepth) {
-    u.scope(prover.name, x => {
+function loadAndProver(file, maxDepth) {
+    u.scope(loadAndProver.name, x => {
         let log = false;
 
         if (u.isUndefined(maxDepth)) {

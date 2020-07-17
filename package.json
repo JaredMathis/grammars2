@@ -1,0 +1,24 @@
+{
+  "name": "grammars2",
+  "version": "1.0.0",
+  "description": "To setup:     Install node     Run:         npm i",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JaredMathis/grammars2.git"
+  },
+  "author": "",
+  "bugs": {
+    "url": "https://github.com/JaredMathis/grammars2/issues"
+  },
+  "homepage": "https://github.com/JaredMathis/grammars2#readme",
+  "dependencies": {
+    "wlj-utilities": "^1.0.82"
+  }
+}

@@ -15,7 +15,7 @@ u.scope(__filename, context => {
     let testGrammar = path.join(directory, 'actual.g');
     fs.copyFileSync(path.join(directory, 'input.g'), testGrammar);
 
-    g.prover(testGrammar);
+    g.loadAndProver(testGrammar);
 
     let grammar = loadGrammar(testGrammar);
 

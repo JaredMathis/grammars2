@@ -1,2 +1,2 @@
 module.exports = {};
-module.exports.prover = require("./library/prover.js");
+module.exports.loadAndProver = require("./library/loadAndProver.js");
