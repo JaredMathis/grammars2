@@ -1,5 +1,3 @@
-const { execSync } = require('child_process');
-
 const u = require('wlj-utilities');
 
 u.scope(__filename, context => {
