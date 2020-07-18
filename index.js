@@ -9,3 +9,4 @@ module.exports.isValidProof = require("./library/isValidProof.js");
 module.exports.assertIsProofStep = require("./library/assertIsProofStep.js");
 module.exports.isValidSubstitution = require("./library/isValidSubstitution.js");
 module.exports.overwriteFile = require("./library/overwriteFile.js");
+module.exports.prover = require("./library/prover.js");

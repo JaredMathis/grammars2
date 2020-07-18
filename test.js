@@ -33,3 +33,4 @@ require("./tests/isValidProof/1.js");
 require("./tests/assertIsProofStep/1.js");
 require("./tests/isValidSubstitution/1.js");
 require("./tests/overwriteFile/1.js");
+require("./tests/prover/1.js");
