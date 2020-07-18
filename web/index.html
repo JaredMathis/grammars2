@@ -1,28 +1,33 @@
 <html>
 
 <head>
-    <meta content="text/html;charset=utf-8"
-        http-equiv="Content-Type">
-    <meta content="utf-8"
-        http-equiv="encoding">
-    <link rel="stylesheet"
-        href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
-        integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk"
-        crossorigin="anonymous">
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+    <meta content="utf-8" http-equiv="encoding">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
+        integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
 
-    <link rel="stylesheet"
-        href="style.css">
+    <link rel="stylesheet" href="style.css">
     </link>
 </head>
 
-<body ng-app="jm"
-    ng-controller="HomeController">
+<body ng-app="jm" ng-controller="HomeController">
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
-        <a class="navbar-brand"
-            href="#">Grammars2</a>
+        <a class="navbar-brand" href="#">Grammars2</a>
     </nav>
 
-    {{ prover }}
+    <div class="input-group mb-3">
+        <div class="input-group-prepend">
+            <label class="input-group-text" ng-style="getStyle()">Max Depth</label>
+        </div>
+        <input class="form-control" type="number" ng-model="maxDepth" />
+    </div>
+    <textarea class="form-control" ng-model="contents" rows="6">
+    </textarea>
+
+    <button ng-click="prove()" class="btn btn-primary">Prove</button>
+
+    <textarea class="form-control" ng-model="result" rows="10" disabled>
+    </textarea>
 
     <script src="bundle.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.7.9/angular.min.js"></script>

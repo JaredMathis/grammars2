@@ -1,4 +1,418 @@
 require=(function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
+
+const u = require("wlj-utilities");
+
+
+module.exports = assertIsProofStep;
+
+function assertIsProofStep(step) {
+    u.scope(assertIsProofStep.name, context => {
+        u.assert(() => u.isString(step));
+    });
+}
+
+},{"wlj-utilities":18}],2:[function(require,module,exports){
+
+const u = require("wlj-utilities");
+
+const goalToken = "#goal";
+
+module.exports = getGoalToken;
+
+function getGoalToken() {
+    return goalToken;
+}
+
+},{"wlj-utilities":18}],3:[function(require,module,exports){
+
+const u = require("wlj-utilities");
+
+
+module.exports = getLines;
+
+function getLines(s) {
+    let lines;
+    u.scope(getLines.name, x => {
+        u.merge(x, {s})
+        u.assert(() => u.isString(s));
+
+        lines = s.split(`
+`);
+        
+    });
+    return lines;
+}
+
+},{"wlj-utilities":18}],4:[function(require,module,exports){
+
+const u = require("wlj-utilities");
+const assertIsProofStep = require("./assertIsProofStep");
+const isValidSubstitution = require("./isValidSubstitution");
+
+
+module.exports = isValidProof;
+
+function isValidProof(rules, proof) {
+    let result = true;
+    let log = false;
+    if (log) console.log('isValidProof entered', {rules, proof});
+    u.scope(isValidProof.name, x => {
+        u.merge(x, {rules});
+        u.merge(x, {proof});
+
+        u.assert(() => u.isArray(rules));
+        u.assert(() => u.isArray(proof));
+        u.loop(proof, step => {
+            assertIsProofStep(step);
+        })
+
+        u.merge(x, {step:'processing proof steps'});
+        u.loop(u.range(proof.length - 1, 1), (currentIndex) => {
+            let validStep = false;
+
+            let previousIndex = currentIndex - 1;
+            u.merge(x, {previousIndex});
+
+            let previous = proof[previousIndex];
+            u.merge(x, {previous});
+
+            let current = proof[currentIndex];            
+
+            let allS = [];
+            u.loop(u.range(previous.length), previousIndex => {
+                u.loop(rules, rule => {
+                    if (validStep) {
+                        return true;
+                    }
+                    let s = isValidSubstitution(
+                        previous, current, rule.left, rule.right, previousIndex);
+                    allS.push(s);
+                    u.merge(x, {s});
+                    u.assert(() => !validStep);
+                    validStep = s.valid;
+                });
+                if (validStep) {
+                    return true;
+                }
+            });
+
+            u.merge(x, {allS});
+            u.merge(x, {validStep});
+
+            if (!validStep) {
+                result = false;
+                return;
+            }
+        });
+    });
+
+    return result;
+}
+},{"./assertIsProofStep":1,"./isValidSubstitution":5,"wlj-utilities":18}],5:[function(require,module,exports){
+
+const u = require("wlj-utilities");
+const assertIsProofStep = require("./assertIsProofStep");
+
+
+module.exports = isValidSubstitution;
+
+function isValidSubstitution(previous, current, left, right, index) {
+    let log = false;
+    if (log) console.log('isValidSubstitution entered', {previous, current, left, right, index});
+
+    let result = {};
+    u.scope(isValidSubstitution.name, context => {
+        u.merge(context, {previous});
+        u.merge(context, {current});
+        u.merge(context, {left});
+        u.merge(context, {right});
+        u.merge(context, {index});
+
+        assertIsProofStep(previous);
+        assertIsProofStep(current);
+        assertIsProofStep(left);
+        assertIsProofStep(right);
+        u.assert(() => u.isInteger(index));
+
+        // Leading up to the rule before and current should match.
+        let previousBefore = previous.substring(0, index);
+        u.merge(context, {previousBefore});
+        let currentBefore = current.substring(0, index);
+        u.merge(context, {currentBefore});
+        if (previousBefore !== currentBefore) {
+            result.valid = false;
+            result.message = 'before does not match';
+            return;
+        }
+
+        // The previous should match the rule left.
+        let previousMatch = previous.substring(index, index + left.length);
+        u.merge(context, {previousMatch});
+        if (previousMatch !== left) {
+            result.valid = false;
+            result.message = 'left does not match previous';
+            return;
+        }
+
+        // The current should match the rule right.
+        let currentMatch = current.substring(index, index + right.length);
+        u.merge(context, {currentMatch});
+        if (currentMatch !== right) {
+            result.valid = false;
+            result.message = 'right does not match current';
+            return;
+        }
+
+        // The afters should match.
+        let previousAfter = previous.substring(index + left.length);
+        u.merge(context, {previousAfter});
+        let currentAfter = current.substring(index + right.length);
+        u.merge(context, {currentAfter});
+        if (previousAfter !== currentAfter) {
+            result.valid = false;
+            result.message = 'after does not match';
+            return;
+        }
+
+        result.valid = true;
+    });
+
+    if (log) console.log({result});
+
+    return result;
+}
+},{"./assertIsProofStep":1,"wlj-utilities":18}],6:[function(require,module,exports){
+
+const u = require("wlj-utilities");
+const getGoalToken = require("./getGoalToken");
+
+
+module.exports = lineIsGoal;
+
+function lineIsGoal(line) {
+    let goal;
+
+    u.scope(lineIsGoal.name, context => {
+        u.assert(() => u.isString(line));
+
+        if (!line.startsWith(getGoalToken())) {
+            return false;
+        }
+
+        let parts = line.split(' ');
+        let goalParts = parts.slice(1);
+        u.assert(() => goalParts.length === 2);
+        goal = {left: goalParts[0], right: goalParts[1]}; 
+    });
+    return goal;
+}
+},{"./getGoalToken":2,"wlj-utilities":18}],7:[function(require,module,exports){
+
+const u = require("wlj-utilities");
+
+
+module.exports = lineIsProofStep;
+
+function lineIsProofStep(line) {
+    return line.length > 0 && line.indexOf(' ') < 0;
+}
+
+},{"wlj-utilities":18}],8:[function(require,module,exports){
+
+const u = require("wlj-utilities");
+const getLines = require("./getLines");
+const lineIsGoal = require("./lineIsGoal");
+const lineIsProofStep = require("./lineIsProofStep");
+const isValidProof = require("./isValidProof");
+
+
+module.exports = parseGrammar;
+
+/**
+ * Checks for proof correctness,
+ * Checks for... TODO
+ * @param {*} fileContents 
+ */
+function parseGrammar(fileContents) {
+    let log = false;
+    if (log) console.log('parseGrammar entered');
+
+    let proof;
+    let grammar;
+
+    u.scope(parseGrammar.name, x => {
+        u.merge(x,{fileContents});
+        grammar = {};
+        grammar.rules = [];
+        grammar.goals = [];
+        proof = [];
+
+        let lines = getLines(fileContents);
+
+        u.merge(x, {step:'processing lines'})
+        u.loop(lines, line => {
+            if (log) console.log('processing line', { line });
+
+            // There should be no double spaces.
+            u.assert(() => line.indexOf('  ') < 0);
+
+            let parts = line.split(' ');
+
+            let goal;
+            if (goal = lineIsGoal(line)) {
+                grammar.goals.push(goal);
+                return;
+            }
+
+            if (line === '') {
+                checkProof();
+                return;
+            }
+
+            // This is a proof step
+            if (lineIsProofStep(line)) {
+                proof.push(line);
+                return;
+            }
+    
+            u.merge(x, {parts});
+            u.assert(() => parts.length === 2);
+
+            u.assert(() => parts[0].length >= 1);
+            u.assert(() => parts[1].length >= 1);
+            grammar.rules.push({ left: parts[0], right: parts[1]});
+        });
+
+        checkProof();
+
+        // Make sure goals have not been proved.
+        u.merge(x, {step:'already proved goals'})
+        u.loop(grammar.goals, goal => {
+            u.loop(grammar.rules, rule => {
+                let goalAlreadyProved = goal.left === rule.left && goal.right === rule.right;
+                u.merge(x, {goalAlreadyProved});
+                u.assert(() => !goalAlreadyProved);
+            });
+        });
+
+        function checkProof() {
+            u.scope(checkProof.name, context => {
+                if (log) console.log('checkProof entered', {proof});
+                // If proof is empty, nothing to check
+                if (proof.length === 0) {
+                    return;
+                }
+        
+                // If the proof is derivable from just first and last steps from previous
+                // proofs, then this proof is redundant.
+                let redundant = isValidProof(grammar.rules, [proof[0], u.arrayLast(proof)]);
+                u.merge(context, {proof});
+                u.assert(() => !redundant);
+        
+                let valid = isValidProof(grammar.rules, proof);
+                u.assert(() => valid);
+        
+                // Add the first and last step of the proof as a new grammar rule.
+                grammar.rules.push({left: proof[0], right: u.arrayLast(proof)});
+        
+                // Reset the proof.
+                proof = [];
+            });
+        }
+    });
+
+    return grammar;
+}
+
+},{"./getLines":3,"./isValidProof":4,"./lineIsGoal":6,"./lineIsProofStep":7,"wlj-utilities":18}],9:[function(require,module,exports){
+
+const u = require('wlj-utilities');
+
+const {
+    prove,
+    addProofToFile,
+    max3ProofSteps,
+    formatFile,
+    removeRedundantProofs,
+    removeGoal,
+    trimProofs,
+} = require('../grammars');
+const parseGrammar = require('./parseGrammar');
+
+module.exports = proverStep;
+
+let log = false;
+
+function proverStep(file, maxDepth) {
+    let provedGoal = false;
+    let changed;
+
+    grammar = parseGrammar(file);
+    if (log) console.log(proverStep.name, { file });
+
+    u.scope(proverStep.name, x => {
+
+        u.loop(grammar.goals, goal=> {
+            u.merge(x, {step: 'proving goal'});
+            if (log) console.log('proving goal', { goal });
+            let found = false;
+            let proof;
+            u.loop(u.range(maxDepth, 1), depth => {
+                proof = prove(grammar.rules, goal.left, goal.right, depth);
+                if (proof !== false) {
+                    // The goal is proved in two steps; it doesn't
+                    // need to be its own proof. Remove the goal.
+                    if (proof.length === 2) {
+                        file = removeGoal(file, goal.left, goal.right);
+                    } else {
+                        found = true;
+                    }
+
+                    return true;
+                }
+            });
+
+            if (found) {
+                provedGoal = true;
+                changed = true;
+                u.merge(x, {proof});
+                u.merge(x, {step: 'proved goal'});
+                if (log) console.log('proved goal', { goal });
+
+                file = addProofToFile(file, proof);
+                if (log) console.log(proverStep.name + ' added proof to file')
+                u.merge(x, {step: 'added proof goal'});
+                return true;
+            } else {
+                if (log) console.log('did not yet prove goal', { goal });
+            }
+        });
+
+        u.merge(x, {step: 'max3ProofSteps'});
+        file = max3ProofSteps(file);
+        file = formatFile(file);
+
+        u.merge(x, {step: 'trimProofs'});
+        let { newContents, anyChanged } = trimProofs(file);
+        file = newContents;
+        if (anyChanged) {
+            //trimProofsChanged = true;
+        }
+        file = formatFile(file);
+
+        if (log) console.log(proverStep.name + ' trimmed ')
+        if (log) console.log(file);
+
+        u.merge(x, {step: 'removeRedundantProofs'});
+        file = removeRedundantProofs(file);
+        file = formatFile(file);
+    });
+
+    if (log) console.log(proverStep.name, {changed, file});
+
+    return { newProvedGoal: provedGoal, newContents: file };
+}
+},{"../grammars":"/grammars","./parseGrammar":8,"wlj-utilities":18}],10:[function(require,module,exports){
 "use strict";
 /**
  * A response from a web request
@@ -60,7 +474,7 @@ var Response = /** @class */ (function () {
 }());
 module.exports = Response;
 
-},{}],2:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 'use strict';
 
 var replace = String.prototype.replace;
@@ -88,7 +502,7 @@ module.exports = util.assign(
     Format
 );
 
-},{"./utils":6}],3:[function(require,module,exports){
+},{"./utils":15}],12:[function(require,module,exports){
 'use strict';
 
 var stringify = require('./stringify');
@@ -101,7 +515,7 @@ module.exports = {
     stringify: stringify
 };
 
-},{"./formats":2,"./parse":4,"./stringify":5}],4:[function(require,module,exports){
+},{"./formats":11,"./parse":13,"./stringify":14}],13:[function(require,module,exports){
 'use strict';
 
 var utils = require('./utils');
@@ -360,7 +774,7 @@ module.exports = function (str, opts) {
     return utils.compact(obj);
 };
 
-},{"./utils":6}],5:[function(require,module,exports){
+},{"./utils":15}],14:[function(require,module,exports){
 'use strict';
 
 var utils = require('./utils');
@@ -633,7 +1047,7 @@ module.exports = function (object, opts) {
     return joined.length > 0 ? prefix + joined : '';
 };
 
-},{"./formats":2,"./utils":6}],6:[function(require,module,exports){
+},{"./formats":11,"./utils":15}],15:[function(require,module,exports){
 'use strict';
 
 var has = Object.prototype.hasOwnProperty;
@@ -883,7 +1297,7 @@ module.exports = {
     merge: merge
 };
 
-},{}],7:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 "use strict";
 exports.__esModule = true;
 var handle_qs_js_1 = require("then-request/lib/handle-qs.js");
@@ -954,7 +1368,7 @@ module.exports = doRequest;
 module.exports["default"] = doRequest;
 module.exports.FormData = fd;
 
-},{"http-response-object":1,"then-request/lib/handle-qs.js":8}],8:[function(require,module,exports){
+},{"http-response-object":10,"then-request/lib/handle-qs.js":17}],17:[function(require,module,exports){
 "use strict";
 exports.__esModule = true;
 var qs_1 = require("qs");
@@ -974,7 +1388,7 @@ function handleQs(url, query) {
 }
 exports["default"] = handleQs;
 
-},{"qs":3}],9:[function(require,module,exports){
+},{"qs":12}],18:[function(require,module,exports){
 
 const core = require('./library/core');
 const log = require('./library/log');
@@ -1041,7 +1455,7 @@ module.exports.awsLambdaApiCall = require("./library/awsLambdaApiCall.js");
 module.exports.isGuid = require("./library/isGuid.js");
 module.exports.padNumber = require("./library/padNumber.js");
 module.exports.args = require("./library/args.js");
-},{"./library/args.js":10,"./library/arrayContainsDuplicates.js":11,"./library/arrayExcept.js":12,"./library/arraySequenceEquals.js":13,"./library/arraySingle.js":14,"./library/arrayWhere.js":15,"./library/assert.js":16,"./library/assertIsArray.js":17,"./library/assertIsEqual.js":18,"./library/assertIsEqualJson.js":19,"./library/assertIsJsonResponse.js":20,"./library/assertIsString.js":21,"./library/assertIsStringArray.js":22,"./library/assertIsStringArrayNested.js":23,"./library/assertOnlyContainsProperties.js":24,"./library/assertThrows.js":25,"./library/awsDeployLambda.js":26,"./library/awsLambdaApiCall.js":27,"./library/awsLambdaError.js":28,"./library/awsLambdaHelloWorld.js":29,"./library/awsScope.js":30,"./library/commandLine":31,"./library/config.js":32,"./library/core":33,"./library/executeCommand.js":34,"./library/file":35,"./library/getAwsApiGatewayFileName.js":36,"./library/getAwsLambdaLogs.js":37,"./library/getLibraryDirectoryName.js":38,"./library/getUniqueFileName.js":39,"./library/helpers.js":40,"./library/isArray.js":41,"./library/isDefined.js":42,"./library/isFunction.js":43,"./library/isGuid.js":44,"./library/isInteger.js":45,"./library/isSetEqual.js":46,"./library/isString.js":47,"./library/isUndefined.js":48,"./library/log":49,"./library/loop.js":50,"./library/merge.js":51,"./library/padNumber.js":52,"./library/processExit.js":53,"./library/propertiesAreEqual.js":54,"./library/propertiesAreEqualAndOnlyContainsProperties.js":55,"./library/propertiesToString.js":56,"./library/range.js":57,"./library/scope.js":58,"./library/splitByEOL.js":59,"./library/stringTrimLambdaPrefix.js":60,"./library/throws.js":61,"./library/toQueryString.js":62,"./library/tools":63,"./library/truncateStringTo.js":64,"./library/unwrapIfLambda.js":65}],10:[function(require,module,exports){
+},{"./library/args.js":19,"./library/arrayContainsDuplicates.js":20,"./library/arrayExcept.js":21,"./library/arraySequenceEquals.js":22,"./library/arraySingle.js":23,"./library/arrayWhere.js":24,"./library/assert.js":25,"./library/assertIsArray.js":26,"./library/assertIsEqual.js":27,"./library/assertIsEqualJson.js":28,"./library/assertIsJsonResponse.js":29,"./library/assertIsString.js":30,"./library/assertIsStringArray.js":31,"./library/assertIsStringArrayNested.js":32,"./library/assertOnlyContainsProperties.js":33,"./library/assertThrows.js":34,"./library/awsDeployLambda.js":35,"./library/awsLambdaApiCall.js":36,"./library/awsLambdaError.js":37,"./library/awsLambdaHelloWorld.js":38,"./library/awsScope.js":39,"./library/commandLine":40,"./library/config.js":41,"./library/core":42,"./library/executeCommand.js":43,"./library/file":44,"./library/getAwsApiGatewayFileName.js":45,"./library/getAwsLambdaLogs.js":46,"./library/getLibraryDirectoryName.js":47,"./library/getUniqueFileName.js":48,"./library/helpers.js":49,"./library/isArray.js":50,"./library/isDefined.js":51,"./library/isFunction.js":52,"./library/isGuid.js":53,"./library/isInteger.js":54,"./library/isSetEqual.js":55,"./library/isString.js":56,"./library/isUndefined.js":57,"./library/log":58,"./library/loop.js":59,"./library/merge.js":60,"./library/padNumber.js":61,"./library/processExit.js":62,"./library/propertiesAreEqual.js":63,"./library/propertiesAreEqualAndOnlyContainsProperties.js":64,"./library/propertiesToString.js":65,"./library/range.js":66,"./library/scope.js":67,"./library/splitByEOL.js":68,"./library/stringTrimLambdaPrefix.js":69,"./library/throws.js":70,"./library/toQueryString.js":71,"./library/tools":72,"./library/truncateStringTo.js":73,"./library/unwrapIfLambda.js":74}],19:[function(require,module,exports){
 const assert = require('./assert');
 const isFunction = require('./isFunction');
 const scope = require('./scope');
@@ -1065,7 +1479,7 @@ function args() {
         }
     });
 }
-},{"./assert":16,"./isFunction":43,"./merge":51,"./scope":58}],11:[function(require,module,exports){
+},{"./assert":25,"./isFunction":52,"./merge":60,"./scope":67}],20:[function(require,module,exports){
 
 const scope = require("./scope");
 const isArray = require("./isArray");
@@ -1103,7 +1517,7 @@ function arrayContainsDuplicates(array) {
     return result;
 }
 
-},{"./assert":16,"./isArray":41,"./merge":51,"./range":57,"./scope":58}],12:[function(require,module,exports){
+},{"./assert":25,"./isArray":50,"./merge":60,"./range":66,"./scope":67}],21:[function(require,module,exports){
 
 const scope = require("./scope");
 const isArray = require("./isArray");
@@ -1129,7 +1543,7 @@ function arrayExcept(array, except) {
     return result;
 }
 
-},{"./assert":16,"./isArray":41,"./scope":58}],13:[function(require,module,exports){
+},{"./assert":25,"./isArray":50,"./scope":67}],22:[function(require,module,exports){
 
 const scope = require("./scope");
 const assertIsArray = require("./assertIsArray");
@@ -1161,7 +1575,7 @@ function arraySequenceEquals(a, b) {
     return result;
 }
 
-},{"./assertIsArray":17,"./loop":50,"./range":57,"./scope":58}],14:[function(require,module,exports){
+},{"./assertIsArray":26,"./loop":59,"./range":66,"./scope":67}],23:[function(require,module,exports){
 
 const scope = require("./scope");
 const loop = require("./loop");
@@ -1197,7 +1611,7 @@ function arraySingle(array, matcher) {
     return result;
 }
 
-},{"./assert":16,"./isArray":41,"./isDefined":42,"./loop":50,"./merge":51,"./propertiesAreEqual":54,"./scope":58}],15:[function(require,module,exports){
+},{"./assert":25,"./isArray":50,"./isDefined":51,"./loop":59,"./merge":60,"./propertiesAreEqual":63,"./scope":67}],24:[function(require,module,exports){
 
 const scope = require("./scope");
 const merge = require("./merge");
@@ -1228,7 +1642,7 @@ function arrayWhere(array, matcher) {
     return result;
 }
 
-},{"./assert":16,"./isArray":41,"./isDefined":42,"./loop":50,"./merge":51,"./propertiesAreEqual":54,"./scope":58}],16:[function(require,module,exports){
+},{"./assert":25,"./isArray":50,"./isDefined":51,"./loop":59,"./merge":60,"./propertiesAreEqual":63,"./scope":67}],25:[function(require,module,exports){
 
 const scope = require("./scope");
 const merge = require("./merge");
@@ -1260,7 +1674,7 @@ function assert(b) {
     return result;
 }
 
-},{"./isFunction":43,"./merge":51,"./scope":58}],17:[function(require,module,exports){
+},{"./isFunction":52,"./merge":60,"./scope":67}],26:[function(require,module,exports){
 
 const scope = require("./scope");
 const unwrapIfLambda = require("./unwrapIfLambda");
@@ -1280,7 +1694,7 @@ function assertIsArray(a) {
     return result;
 }
 
-},{"./assert":16,"./isArray":41,"./merge":51,"./scope":58,"./unwrapIfLambda":65}],18:[function(require,module,exports){
+},{"./assert":25,"./isArray":50,"./merge":60,"./scope":67,"./unwrapIfLambda":74}],27:[function(require,module,exports){
 
 const scope = require("./scope");
 const assert = require("./assert");
@@ -1299,7 +1713,7 @@ function assertIsEqual(a, b) {
     return result;
 }
 
-},{"./assert":16,"./merge":51,"./scope":58,"./unwrapIfLambda":65}],19:[function(require,module,exports){
+},{"./assert":25,"./merge":60,"./scope":67,"./unwrapIfLambda":74}],28:[function(require,module,exports){
 const assert = require("./assert");
 const scope = require('./scope');
 const isDefined = require("./isDefined");
@@ -1337,7 +1751,7 @@ function assertIsEqualJson(left, right) {
     return result;
 }
 
-},{"./assert":16,"./isDefined":42,"./isFunction":43,"./merge":51,"./scope":58}],20:[function(require,module,exports){
+},{"./assert":25,"./isDefined":51,"./isFunction":52,"./merge":60,"./scope":67}],29:[function(require,module,exports){
 const scope = require("./scope");
 const assert = require("./assert");
 const merge = require("./merge");
@@ -1373,7 +1787,7 @@ function assertIsJsonResponse(response, status, body) {
     return result;
 }
 
-},{"./assert":16,"./isDefined":42,"./isFunction":43,"./isInteger":45,"./merge":51,"./scope":58}],21:[function(require,module,exports){
+},{"./assert":25,"./isDefined":51,"./isFunction":52,"./isInteger":54,"./merge":60,"./scope":67}],30:[function(require,module,exports){
 
 const scope = require("./scope");
 const assert = require("./assert");
@@ -1393,7 +1807,7 @@ function assertIsString(s) {
     return result;
 }
 
-},{"./assert":16,"./isString":47,"./merge":51,"./scope":58,"./unwrapIfLambda":65}],22:[function(require,module,exports){
+},{"./assert":25,"./isString":56,"./merge":60,"./scope":67,"./unwrapIfLambda":74}],31:[function(require,module,exports){
 
 const assert = require("./assert");
 const scope = require("./scope");
@@ -1419,7 +1833,7 @@ function assertIsStringArray(array) {
     return result;
 }
 
-},{"./assert":16,"./isArray":41,"./isString":47,"./loop":50,"./merge":51,"./scope":58,"./unwrapIfLambda":65}],23:[function(require,module,exports){
+},{"./assert":25,"./isArray":50,"./isString":56,"./loop":59,"./merge":60,"./scope":67,"./unwrapIfLambda":74}],32:[function(require,module,exports){
 
 const scope = require("./scope");
 const assert = require("./assert");
@@ -1445,7 +1859,7 @@ function assertIsStringArrayNested(input) {
     return result;
 }
 
-},{"./assert":16,"./assertIsStringArray":22,"./isArray":41,"./loop":50,"./merge":51,"./scope":58,"./unwrapIfLambda":65}],24:[function(require,module,exports){
+},{"./assert":25,"./assertIsStringArray":31,"./isArray":50,"./loop":59,"./merge":60,"./scope":67,"./unwrapIfLambda":74}],33:[function(require,module,exports){
 
 const scope = require("./scope");
 const assert = require("./assert");
@@ -1475,7 +1889,7 @@ function assertOnlyContainsProperties(object, properties) {
     return result;
 }
 
-},{"./assert":16,"./assertIsStringArray":22,"./isDefined":42,"./merge":51,"./scope":58}],25:[function(require,module,exports){
+},{"./assert":25,"./assertIsStringArray":31,"./isDefined":51,"./merge":60,"./scope":67}],34:[function(require,module,exports){
 
 const scope = require("./scope");
 const assert = require("./assert");
@@ -1493,7 +1907,7 @@ function assertThrows(lambda) {
     return result;
 }
 
-},{"./assert":16,"./merge":51,"./scope":58,"./throws":61}],26:[function(require,module,exports){
+},{"./assert":25,"./merge":60,"./scope":67,"./throws":70}],35:[function(require,module,exports){
 
 const scope = require("./scope");
 const assert = require("./assert");
@@ -1629,7 +2043,7 @@ function awsDeployLambda(args) {
     return result;
 }
 
-},{"./arrayWhere":15,"./assert":16,"./executeCommand":34,"./file":35,"./getAwsApiGatewayFileName":36,"./getLibraryDirectoryName":38,"./getUniqueFileName":39,"./merge":51,"./scope":58,"fs":66}],27:[function(require,module,exports){
+},{"./arrayWhere":24,"./assert":25,"./executeCommand":43,"./file":44,"./getAwsApiGatewayFileName":45,"./getLibraryDirectoryName":47,"./getUniqueFileName":48,"./merge":60,"./scope":67,"fs":75}],36:[function(require,module,exports){
 (function (__filename){
 
 const scope = require("./scope");
@@ -1679,7 +2093,7 @@ function awsLambdaApiCall(apigateway, lambdaName, jsonBody, context) {
 }
 
 }).call(this,"/node_modules/wlj-utilities/library/awsLambdaApiCall.js")
-},{"./assert":16,"./assertIsString":21,"./isDefined":42,"./merge":51,"./scope":58,"sync-request":7}],28:[function(require,module,exports){
+},{"./assert":25,"./assertIsString":30,"./isDefined":51,"./merge":60,"./scope":67,"sync-request":16}],37:[function(require,module,exports){
 const awsScope = require("./awsScope");
 const merge = require("./merge");
 const assert = require("./assert");
@@ -1693,7 +2107,7 @@ function awsLambdaError(event, context, callback) {
     }, callback);
 }
 
-},{"./assert":16,"./awsScope":30,"./merge":51}],29:[function(require,module,exports){
+},{"./assert":25,"./awsScope":39,"./merge":60}],38:[function(require,module,exports){
 
 const awsScope = require("./awsScope");
 
@@ -1707,7 +2121,7 @@ async function awsLambdaHelloWorld(event, context, callback) {
     }, callback);
 }
 
-},{"./awsScope":30}],30:[function(require,module,exports){
+},{"./awsScope":39}],39:[function(require,module,exports){
 
 const scope = require("./scope");
 const isFunction = require("./isFunction");
@@ -1742,7 +2156,7 @@ async function awsScope(lambda, callback) {
     }
 }
 
-},{"./assert":16,"./isFunction":43,"./scope":58}],31:[function(require,module,exports){
+},{"./assert":25,"./isFunction":52,"./scope":67}],40:[function(require,module,exports){
 (function (process){
 const isString = require('./isString');
 const scope = require('./scope');
@@ -2005,7 +2419,7 @@ function functionDelete(args, messages) {
     });
 }
 }).call(this,require('_process'))
-},{"./assert":16,"./awsDeployLambda":26,"./file":35,"./getAwsLambdaLogs":37,"./getLibraryDirectoryName":38,"./isArray":41,"./isInteger":45,"./isString":47,"./isUndefined":48,"./loop":50,"./merge":51,"./scope":58,"_process":69,"fs":66,"os":67,"path":68}],32:[function(require,module,exports){
+},{"./assert":25,"./awsDeployLambda":35,"./file":44,"./getAwsLambdaLogs":46,"./getLibraryDirectoryName":47,"./isArray":50,"./isInteger":54,"./isString":56,"./isUndefined":57,"./loop":59,"./merge":60,"./scope":67,"_process":78,"fs":75,"os":76,"path":77}],41:[function(require,module,exports){
 
 module.exports = {
     processExit: true,
@@ -2013,7 +2427,7 @@ module.exports = {
         scopeError: true,
     }
 };
-},{}],33:[function(require,module,exports){
+},{}],42:[function(require,module,exports){
 const isUndefined = require('./isUndefined');
 const isString = require('./isString');
 const config = require('./config');
@@ -2025,7 +2439,7 @@ module.exports = {
 function isEqualJson(a, b) {
     return JSON.stringify(a) === JSON.stringify(b);
 }
-},{"./config":32,"./isString":47,"./isUndefined":48}],34:[function(require,module,exports){
+},{"./config":41,"./isString":56,"./isUndefined":57}],43:[function(require,module,exports){
 
 const scope = require("./scope");
 const { execSync } = require('child_process');
@@ -2042,7 +2456,7 @@ function executeCommand(command) {
     return result;
 }
 
-},{"./scope":58,"child_process":66}],35:[function(require,module,exports){
+},{"./scope":67,"child_process":75}],44:[function(require,module,exports){
 const scope = require('./scope');
 const isString = require('./isString');
 const isDefined = require('./isDefined');
@@ -2185,7 +2599,7 @@ function bumpPackageVersion(packageDirectory) {
     });
     return result;
 }
-},{"./assert":16,"./assertIsEqual":18,"./isDefined":42,"./isString":47,"./loop":50,"./merge":51,"./scope":58,"fs":66,"path":68}],36:[function(require,module,exports){
+},{"./assert":25,"./assertIsEqual":27,"./isDefined":51,"./isString":56,"./loop":59,"./merge":60,"./scope":67,"fs":75,"path":77}],45:[function(require,module,exports){
 
 const scope = require("./scope");
 
@@ -2199,7 +2613,7 @@ function getAwsApiGatewayFileName() {
     return result;
 }
 
-},{"./scope":58}],37:[function(require,module,exports){
+},{"./scope":67}],46:[function(require,module,exports){
 
 const scope = require("./scope");
 const assertIsArray = require("./assertIsArray");
@@ -2247,7 +2661,7 @@ function getAwsLambdaLogs(args, messages) {
     return result;
 }
 
-},{"./assert":16,"./assertIsArray":17,"./executeCommand":34,"./getUniqueFileName":39,"./scope":58,"fs":66}],38:[function(require,module,exports){
+},{"./assert":25,"./assertIsArray":26,"./executeCommand":43,"./getUniqueFileName":48,"./scope":67,"fs":75}],47:[function(require,module,exports){
 
 const scope = require("./scope");
 
@@ -2261,7 +2675,7 @@ function getLibraryDirectoryName() {
     return result;
 }
 
-},{"./scope":58}],39:[function(require,module,exports){
+},{"./scope":67}],48:[function(require,module,exports){
 
 const scope = require("./scope");
 const assert = require("./assert");
@@ -2295,7 +2709,7 @@ function getUniqueFileName(filePath) {
     return result;
 }
 
-},{"./assert":16,"./isString":47,"./scope":58,"fs":66,"path":68}],40:[function(require,module,exports){
+},{"./assert":25,"./isString":56,"./scope":67,"fs":75,"path":77}],49:[function(require,module,exports){
 (function (__filename){
 
 const scope = require("./scope");
@@ -2309,13 +2723,13 @@ scope(__filename, x => {
 });
 
 }).call(this,"/node_modules/wlj-utilities/library/helpers.js")
-},{"./merge":51,"./scope":58,"os":67}],41:[function(require,module,exports){
+},{"./merge":60,"./scope":67,"os":76}],50:[function(require,module,exports){
 module.exports = isArray;
 
 function isArray(a) {
     return Array.isArray(a);
 }
-},{}],42:[function(require,module,exports){
+},{}],51:[function(require,module,exports){
 
 const isUndefined = require("./isUndefined");
 
@@ -2325,13 +2739,13 @@ function isDefined(a) {
     return !isUndefined(a);
 }
 
-},{"./isUndefined":48}],43:[function(require,module,exports){
+},{"./isUndefined":57}],52:[function(require,module,exports){
 module.exports = isFunction;
 
 function isFunction(functionToCheck) {
     return functionToCheck && {}.toString.call(functionToCheck) === '[object Function]';
 }
-},{}],44:[function(require,module,exports){
+},{}],53:[function(require,module,exports){
 
 const scope = require("./scope");
 const assertIsString = require("./assertIsString");
@@ -2350,7 +2764,7 @@ function isGuid(input) {
     return result;
 }
 
-},{"./assertIsString":21,"./scope":58}],45:[function(require,module,exports){
+},{"./assertIsString":30,"./scope":67}],54:[function(require,module,exports){
 
 const scope = require("./scope");
 
@@ -2364,7 +2778,7 @@ function isInteger(a) {
     return result;
 }
 
-},{"./scope":58}],46:[function(require,module,exports){
+},{"./scope":67}],55:[function(require,module,exports){
 
 const scope = require("./scope");
 const assert = require("./assert");
@@ -2393,7 +2807,7 @@ function isSetEqual(a, b) {
     return result;
 }
 
-},{"./assert":16,"./isArray":41,"./scope":58}],47:[function(require,module,exports){
+},{"./assert":25,"./isArray":50,"./scope":67}],56:[function(require,module,exports){
 
 module.exports = isString;
 
@@ -2402,13 +2816,13 @@ function isString(s) {
     return result;
 }
 
-},{}],48:[function(require,module,exports){
+},{}],57:[function(require,module,exports){
 module.exports = isUndefined;
 
 function isUndefined(a) {
     return typeof a === 'undefined';
 }
-},{}],49:[function(require,module,exports){
+},{}],58:[function(require,module,exports){
 const {
     processExit,
     isUndefined,
@@ -2544,7 +2958,7 @@ function consoleLog(message) {
 
     if (log) console.log('consoleLog leaving');
 }
-},{"./core":33}],50:[function(require,module,exports){
+},{"./core":42}],59:[function(require,module,exports){
 
 const scope = require("./scope");
 const merge = require("./merge");
@@ -2578,7 +2992,7 @@ function loop(array, lambda) {
     return result;
 }
 
-},{"./assert":16,"./isArray":41,"./isFunction":43,"./merge":51,"./scope":58}],51:[function(require,module,exports){
+},{"./assert":25,"./isArray":50,"./isFunction":52,"./merge":60,"./scope":67}],60:[function(require,module,exports){
 const isUndefined = require('./isUndefined')
 const isFunction = require('./isFunction')
 const stringTrimLambdaPrefix = require('./stringTrimLambdaPrefix');
@@ -2614,7 +3028,7 @@ function merge(a, b) {
     }
 }
 
-},{"./isFunction":43,"./isUndefined":48,"./stringTrimLambdaPrefix":60}],52:[function(require,module,exports){
+},{"./isFunction":52,"./isUndefined":57,"./stringTrimLambdaPrefix":69}],61:[function(require,module,exports){
 
 const scope = require("./scope");
 const assert = require("./assert");
@@ -2637,7 +3051,7 @@ function padNumber(n, width, z) {
     return result;
 }
 
-},{"./assert":16,"./isInteger":45,"./scope":58}],53:[function(require,module,exports){
+},{"./assert":25,"./isInteger":54,"./scope":67}],62:[function(require,module,exports){
 (function (process){
 
 const scope = require("./scope");
@@ -2660,7 +3074,7 @@ function processExit() {
 }
 
 }).call(this,require('_process'))
-},{"./config":32,"./scope":58,"_process":69}],54:[function(require,module,exports){
+},{"./config":41,"./scope":67,"_process":78}],63:[function(require,module,exports){
 
 const scope = require("./scope");
 const assertIsStringArray = require("./assertIsStringArray");
@@ -2687,7 +3101,7 @@ function propertiesAreEqual(a, b, properties) {
     return result;
 }
 
-},{"./assertIsStringArray":22,"./loop":50,"./merge":51,"./scope":58}],55:[function(require,module,exports){
+},{"./assertIsStringArray":31,"./loop":59,"./merge":60,"./scope":67}],64:[function(require,module,exports){
 
 const scope = require("./scope");
 const assert = require("./assert");
@@ -2708,7 +3122,7 @@ function propertiesAreEqualAndOnlyContainsProperties(a, b, properties) {
     return result;
 }
 
-},{"./assert":16,"./assertIsStringArray":22,"./assertOnlyContainsProperties":24,"./propertiesAreEqual":54,"./scope":58}],56:[function(require,module,exports){
+},{"./assert":25,"./assertIsStringArray":31,"./assertOnlyContainsProperties":33,"./propertiesAreEqual":63,"./scope":67}],65:[function(require,module,exports){
 const isFunction = require('./isFunction');
 const isUndefined = require('./isUndefined');
 const truncateStringTo = require('./truncateStringTo');
@@ -2741,7 +3155,7 @@ function propertiesToString(object, prefix) {
     return result;
 }
 
-},{"./isFunction":43,"./isUndefined":48,"./truncateStringTo":64}],57:[function(require,module,exports){
+},{"./isFunction":52,"./isUndefined":57,"./truncateStringTo":73}],66:[function(require,module,exports){
 
 const scope = require("./scope");
 const isUndefined = require("./isUndefined");
@@ -2771,7 +3185,7 @@ function range(count, start) {
     return result;
 }
 
-},{"./assert":16,"./isInteger":45,"./isUndefined":48,"./merge":51,"./scope":58}],58:[function(require,module,exports){
+},{"./assert":25,"./isInteger":54,"./isUndefined":57,"./merge":60,"./scope":67}],67:[function(require,module,exports){
 const isString = require("./isString");
 const isFunction = require("./isFunction");
 const processExit = require("./processExit");
@@ -2844,7 +3258,7 @@ function ScopeError(name, context, innerError) {
 }
 
 //ScopeError.prototype = new Error();
-},{"./config":32,"./isFunction":43,"./isString":47,"./processExit":53,"./propertiesToString":56}],59:[function(require,module,exports){
+},{"./config":41,"./isFunction":52,"./isString":56,"./processExit":62,"./propertiesToString":65}],68:[function(require,module,exports){
 
 const scope = require("./scope");
 const assertIsString = require("./assertIsString");
@@ -2861,7 +3275,7 @@ function splitByEOL(text) {
     return result;
 }
 
-},{"./assertIsString":21,"./helpers":40,"./scope":58}],60:[function(require,module,exports){
+},{"./assertIsString":30,"./helpers":49,"./scope":67}],69:[function(require,module,exports){
 
 const scope = require("./scope");
 
@@ -2888,7 +3302,7 @@ function stringTrimLambdaPrefix(s) {
     return result;
 }
 
-},{"./scope":58}],61:[function(require,module,exports){
+},{"./scope":67}],70:[function(require,module,exports){
 const scope = require("./../library/scope");
 const assert = require("./../library/assert");
 const isFunction = require("./../library/isFunction");
@@ -2911,7 +3325,7 @@ function throws(lambda) {
     return result;
 }
 
-},{"./../library/assert":16,"./../library/isFunction":43,"./../library/scope":58}],62:[function(require,module,exports){
+},{"./../library/assert":25,"./../library/isFunction":52,"./../library/scope":67}],71:[function(require,module,exports){
 
 const scope = require("./scope");
 const assert = require("./assert");
@@ -2948,7 +3362,7 @@ function toQueryString(object) {
     return result;
 }
 
-},{"./assert":16,"./isDefined":42,"./isString":47,"./merge":51,"./scope":58}],63:[function(require,module,exports){
+},{"./assert":25,"./isDefined":51,"./isString":56,"./merge":60,"./scope":67}],72:[function(require,module,exports){
 const isInteger = require('./isInteger');
 const isDefined = require('./isDefined');
 const merge = require('./merge');
@@ -3170,7 +3584,7 @@ function stringSuffix(string, count) {
     });
     return result;
 }
-},{"./assert":16,"./isArray":41,"./isDefined":42,"./isInteger":45,"./isString":47,"./loop":50,"./merge":51,"./scope":58}],64:[function(require,module,exports){
+},{"./assert":25,"./isArray":50,"./isDefined":51,"./isInteger":54,"./isString":56,"./loop":59,"./merge":60,"./scope":67}],73:[function(require,module,exports){
 
 const scope = require("./scope");
 
@@ -3184,7 +3598,7 @@ function truncateStringTo(string, maxCharacters) {
     }
     return string;
 }
-},{"./scope":58}],65:[function(require,module,exports){
+},{"./scope":67}],74:[function(require,module,exports){
 
 const scope = require("./scope");
 const isFunction = require("./isFunction");
@@ -3203,16 +3617,19 @@ function unwrapIfLambda(input) {
     return result;
 }
 
-},{"./isFunction":43,"./scope":58}],"/grammars":[function(require,module,exports){
+},{"./isFunction":52,"./scope":67}],"/grammars":[function(require,module,exports){
 const u = require('wlj-utilities');
 
 const fs = require('fs');
+const parseGrammar = require('./library/parseGrammar');
+const assertIsProofStep = require('./library/assertIsProofStep');
+const getLines = require('./library/getLines');
+const getGoalToken = require('./library/getGoalToken');
+const lineIsProofStep = require('./library/lineIsProofStep');
+const isValidProof = require('./library/isValidProof');
 
 module.exports = {
     loadGrammar,
-    isValidSubstitution,
-    isValidProof,
-    assertIsValidGrammarFile,
     substitute,
     prove,
     addProofToFile,
@@ -3231,28 +3648,10 @@ function loadGrammar(fileName) {
     u.scope(loadGrammar.name, context => {
         u.merge(context, {fileName});
         const fileContents = u.readFile(fileName);
-        grammar = assertIsValidGrammarFile(fileContents);
+        grammar = parseGrammar(fileContents);
     });
 
     return grammar;
-}
-
-const goalToken = "#goal";
-
-function getLines(s) {
-    let lines;
-    u.scope(getLines.name, context => {
-        u.assert(() => u.isString(s));
-
-        lines = s.split(`
-`);
-        
-    });
-    return lines;
-}
-
-function lineIsProofStep(line) {
-    return line.length > 0 && line.indexOf(' ') < 0;
 }
 
 function lineIsRule(line) {
@@ -3274,125 +3673,6 @@ function lineIsRule(line) {
     return result;
 }
 
-function lineIsGoal(line) {
-    let goal;
-
-    u.scope(lineIsRule.name, context => {
-        u.assert(() => u.isString(line));
-
-        if (!line.startsWith(goalToken)) {
-            return false;
-        }
-
-        let parts = line.split(' ');
-        let goalParts = parts.slice(1);
-        u.assert(() => goalParts.length === 2);
-        goal = {left: goalParts[0], right: goalParts[1]}; 
-    });
-    return goal;
-}
-
-/**
- * Checks for proof correctness,
- * Checks for... TODO
- * @param {*} fileContents 
- */
-function assertIsValidGrammarFile(fileContents) {
-    let log = false;
-    if (log) console.log('assertIsValidGrammarFile entered');
-
-    let proof;
-    let grammar;
-
-    u.scope(assertIsValidGrammarFile.name, context => {
-        grammar = {};
-        grammar.rules = [];
-        grammar.goals = [];
-        proof = [];
-
-        let lines = getLines(fileContents);
-
-        u.merge(context, {step:'processing lines'})
-        u.loop(lines, line => {
-            if (log) console.log('processing line', { line });
-
-            // There should be no double spaces.
-            u.assert(() => line.indexOf('  ') < 0);
-
-            let parts = line.split(' ');
-
-            let goal;
-            if (goal = lineIsGoal(line)) {
-                grammar.goals.push(goal);
-                return;
-            }
-
-            if (line === '') {
-                checkProof();
-                return;
-            }
-
-            // This is a proof step
-            if (lineIsProofStep(line)) {
-                proof.push(line);
-                return;
-            }
-    
-            u.merge(context, {parts});
-            u.assert(() => parts.length === 2);
-
-            u.assert(() => parts[0].length >= 1);
-            u.assert(() => parts[1].length >= 1);
-            grammar.rules.push({ left: parts[0], right: parts[1]});
-        });
-
-        checkProof();
-
-        // Make sure goals have not been proved.
-        u.merge(context, {step:'already proved goals'})
-        u.loop(grammar.goals, goal => {
-            u.loop(grammar.rules, rule => {
-                let goalAlreadyProved = goal.left === rule.left && goal.right === rule.right;
-                u.merge(context, {goalAlreadyProved});
-                u.assert(() => !goalAlreadyProved);
-            });
-        });
-
-        function checkProof() {
-            u.scope(checkProof.name, context => {
-                if (log) console.log('checkProof entered', {proof});
-                // If proof is empty, nothing to check
-                if (proof.length === 0) {
-                    return;
-                }
-        
-                // If the proof is derivable from just first and last steps from previous
-                // proofs, then this proof is redundant.
-                let redundant = isValidProof(grammar.rules, [proof[0], u.arrayLast(proof)]);
-                u.merge(context, {proof});
-                u.assert(() => !redundant);
-        
-                let valid = isValidProof(grammar.rules, proof);
-                u.assert(() => valid);
-        
-                // Add the first and last step of the proof as a new grammar rule.
-                grammar.rules.push({left: proof[0], right: u.arrayLast(proof)});
-        
-                // Reset the proof.
-                proof = [];
-            });
-        }
-    });
-
-    return grammar;
-}
-
-function assertIsProofStep(step) {
-    u.scope(assertIsProofStep.name, context => {
-        u.assert(() => u.isString(step));
-    });
-}
-
 function assertIsProof(proof) {
     u.scope(assertIsProof.name, context => {
         u.merge(context, {proof});
@@ -3402,129 +3682,6 @@ function assertIsProof(proof) {
             assertIsProofStep(p);
         })
     });
-}
-
-function isValidProof(rules, proof) {
-    let result = true;
-    let log = false;
-    if (log) console.log('isValidProof entered', {rules, proof});
-    u.scope(isValidProof.name, x => {
-        u.merge(x, {rules});
-        u.merge(x, {proof});
-
-        u.assert(() => u.isArray(rules));
-        u.assert(() => u.isArray(proof));
-        u.loop(proof, step => {
-            assertIsProofStep(step);
-        })
-
-        u.merge(x, {step:'processing proof steps'});
-        u.loop(u.range(proof.length - 1, 1), (currentIndex) => {
-            let validStep = false;
-
-            let previousIndex = currentIndex - 1;
-            u.merge(x, {previousIndex});
-
-            let previous = proof[previousIndex];
-            u.merge(x, {previous});
-
-            let current = proof[currentIndex];            
-
-            let allS = [];
-            u.loop(u.range(previous.length), previousIndex => {
-                u.loop(rules, rule => {
-                    if (validStep) {
-                        return true;
-                    }
-                    let s = isValidSubstitution(
-                        previous, current, rule.left, rule.right, previousIndex);
-                    allS.push(s);
-                    u.merge(x, {s});
-                    u.assert(() => !validStep);
-                    validStep = s.valid;
-                });
-                if (validStep) {
-                    return true;
-                }
-            });
-
-            u.merge(x, {allS});
-            u.merge(x, {validStep});
-
-            if (!validStep) {
-                result = false;
-                return;
-            }
-        });
-    });
-
-    return result;
-}
-
-function isValidSubstitution(previous, current, left, right, index) {
-    let log = false;
-    if (log) console.log('isValidSubstitution entered', {previous, current, left, right, index});
-
-    let result = {};
-    u.scope(isValidSubstitution.name, context => {
-        u.merge(context, {previous});
-        u.merge(context, {current});
-        u.merge(context, {left});
-        u.merge(context, {right});
-        u.merge(context, {index});
-
-        assertIsProofStep(previous);
-        assertIsProofStep(current);
-        assertIsProofStep(left);
-        assertIsProofStep(right);
-        u.assert(() => u.isInteger(index));
-
-        // Leading up to the rule before and current should match.
-        let previousBefore = previous.substring(0, index);
-        u.merge(context, {previousBefore});
-        let currentBefore = current.substring(0, index);
-        u.merge(context, {currentBefore});
-        if (previousBefore !== currentBefore) {
-            result.valid = false;
-            result.message = 'before does not match';
-            return;
-        }
-
-        // The previous should match the rule left.
-        let previousMatch = previous.substring(index, index + left.length);
-        u.merge(context, {previousMatch});
-        if (previousMatch !== left) {
-            result.valid = false;
-            result.message = 'left does not match previous';
-            return;
-        }
-
-        // The current should match the rule right.
-        let currentMatch = current.substring(index, index + right.length);
-        u.merge(context, {currentMatch});
-        if (currentMatch !== right) {
-            result.valid = false;
-            result.message = 'right does not match current';
-            return;
-        }
-
-        // The afters should match.
-        let previousAfter = previous.substring(index + left.length);
-        u.merge(context, {previousAfter});
-        let currentAfter = current.substring(index + right.length);
-        u.merge(context, {currentAfter});
-        if (previousAfter !== currentAfter) {
-            result.valid = false;
-            result.message = 'after does not match';
-            return;
-        }
-
-        result.valid = true;
-    });
-
-    if (log) console.log({result});
-
-    return result;
 }
 
 function substitute(left, right, previous, index) {
@@ -3644,16 +3801,16 @@ function prove(rules, start, goal, depth, proof) {
 function addProofToFile(file, proof) {
     u.scope(addProofToFile.name, context => {
         // Add the proof.
-        u.appendFileLine(file);
+        file += u.EOL
         u.loop(proof, p => {
-            u.appendFileLine(file);
-            fs.appendFileSync(file, p);
+            file += u.EOL
+            file += p;
         });
 
-        removeGoal(file, proof[0], u.arrayLast(proof));
+        file = removeGoal(file, proof[0], u.arrayLast(proof));
 
         // Make sure proofs in file are valid.
-        let grammar = loadGrammar(file);
+        let grammar = parseGrammar(file);
 
         // Make sure last proof is the proof we added
         let lastRule = u.arrayLast(grammar.rules);
@@ -3661,16 +3818,11 @@ function addProofToFile(file, proof) {
         u.assert(() => lastRule.left === proof[0]);
         u.assert(() => lastRule.right === u.arrayLast(proof));
     });
-}
-
-function overwriteFile(file, lines) {
-    fs.writeFileSync(file, '');
-    u.loop(lines, line => {
-        u.appendFileLine(file, line);
-    });
+    return file;
 }
 
 function removeGoal(file, left, right) {
+    let log = false;
     u.scope(removeGoal.name, context => {
         u.merge(context, {file});
         u.merge(context, {left});
@@ -3679,8 +3831,7 @@ function removeGoal(file, left, right) {
         assertIsProofStep(left);
         assertIsProofStep(right);
 
-        let fileContents = u.readFile(file);
-        let lines = getLines(fileContents);
+        let lines = getLines(file);
 
         let result = [];
 
@@ -3688,7 +3839,7 @@ function removeGoal(file, left, right) {
 
         u.loop(lines, line => {
             // Skip if the line is the goal.
-            if (line === `${goalToken} ${left} ${right}`) {
+            if (line === `${getGoalToken()} ${left} ${right}`) {
                 goalCount++;
                 return;
             }
@@ -3699,11 +3850,12 @@ function removeGoal(file, left, right) {
 
         u.assertIsEqual(() => goalCount, 1);
 
-        // Reset file contents.
-        overwriteFile(file, result);
+        file = result.join(u.EOL);
 
         u.merge(context, {result});
     });
+    if (log) console.log(removeGoal.name + ' leaving', { file });
+    return file;
 }
 
 function breakUpProof(proof) {
@@ -3757,12 +3909,12 @@ function breakUpProof(proof) {
 
 function max3ProofSteps(file) {
     let result = [];
-    u.scope(max3ProofSteps.name, context => {
+    u.scope(max3ProofSteps.name, x => {
+        u.merge(x,{file});
         // Make sure proofs are valid.
-        loadGrammar(file);
+        parseGrammar(file);
 
-        let fileContents = u.readFile(file);
-        let lines = getLines(fileContents);
+        let lines = getLines(file);
 
         let proof = [];
         u.loop(lines, line => {
@@ -3792,45 +3944,48 @@ function max3ProofSteps(file) {
             proof = [];
         }
 
-        overwriteFile(file, result);        
+        file = result.join(u.EOL);
     });
+    return file;
 }
 
 function formatFile(file) {
-    let text = u.readFile(file);
-    let lines = getLines(text);
-
-    if (lines.length === 0) {
-        return;
-    }
+    u.scope(formatFile.name, x => {
+        u.merge(x,{file});
+        let lines = getLines(file);
     
-    let result = [
-        lines[0],
-    ];
-
-    u.loop(u.range(lines.length - 1, 1), index => {
-        let previous = lines[index - 1];
-        let current = lines[index];
-
-        if (current === '' && current === previous) {
+        if (lines.length === 0) {
             return;
         }
-
-        result.push(current);
+        
+        let result = [
+            lines[0],
+        ];
+    
+        u.loop(u.range(lines.length - 1, 1), index => {
+            let previous = lines[index - 1];
+            let current = lines[index];
+    
+            if (current === '' && current === previous) {
+                return;
+            }
+    
+            result.push(current);
+        })
+    
+        file = result.join(u.EOL);
     })
-
-    overwriteFile(file, result);
+    return file;
 }
 
-function removeRedundantProofs(fileName) {
+function removeRedundantProofs(file) {
     let log = false;
     let result = [];
     u.scope(removeRedundantProofs.name, context => {
-        u.merge(context, {fileName});
+        u.merge(context, {file});
 
         u.merge(context, {step:'reading file'});
-        let fileContents = u.readFile(fileName);
-        let lines = getLines(fileContents);
+        let lines = getLines(file);
 
         let proof = [];
         let rules = [];
@@ -3851,7 +4006,7 @@ function removeRedundantProofs(fileName) {
         });
         processProof();
 
-        overwriteFile(fileName, result);   
+        file = result.join(u.EOL);
 
         function processProof() {
             u.scope(processProof.name, context => {
@@ -3880,18 +4035,19 @@ function removeRedundantProofs(fileName) {
             });
         }     
     });
+
+    return file;
 }
 
-function trimProofs(fileName) {
+function trimProofs(file) {
     let log = false;
     if (log) console.log('trimProofs entered');
 
     let anyChanged = false;
     u.scope(trimProofs.name, context => {
-        u.merge(context, {fileName});
+        u.merge(context, {file});
 
-        let fileContents = u.readFile(fileName);
-        let lines = getLines(fileContents);
+        let lines = getLines(file);
         let newLines = [];
 
         let proof = [];
@@ -3916,10 +4072,14 @@ function trimProofs(fileName) {
         });
         processProof();
 
-        overwriteFile(fileName, newLines);   
+        if (log) console.log({newLines});
+
+        file = newLines.join(u.EOL);
 
         function processProof() {
             u.scope(processProof.name, context => {
+                if (log) console.log(trimProofs.name + ' ' + processProof.name);
+                if (log) console.log({proof});
                 u.merge(context, {proof});
                 if (proof.length === 0) {
                     return;
@@ -4006,97 +4166,42 @@ function trimProofs(fileName) {
         }
     });
 
-    return anyChanged;
+    return { anyChanged, newContents: file };
 }
-},{"fs":66,"wlj-utilities":9}],"/library/prover":[function(require,module,exports){
+},{"./library/assertIsProofStep":1,"./library/getGoalToken":2,"./library/getLines":3,"./library/isValidProof":4,"./library/lineIsProofStep":7,"./library/parseGrammar":8,"fs":75,"wlj-utilities":18}],"/library/prover":[function(require,module,exports){
 
-const u = require('wlj-utilities');
+const u = require("wlj-utilities");
+const proverStep = require("./proverStep");
 
-const {
-    loadGrammar,
-    prove,
-    addProofToFile,
-    max3ProofSteps,
-    formatFile,
-    removeRedundantProofs,
-    removeGoal,
-    trimProofs,
-} = require('./../grammars');
 
 module.exports = prover;
 
-function prover(file, maxDepth) {
+function prover(contents, maxDepth) {
+    let log = false;
     u.scope(prover.name, x => {
-        let log = false;
 
         if (u.isUndefined(maxDepth)) {
             maxDepth = 8;
         }
         u.assert(() => u.isInteger(maxDepth));
-    
+
         let provedGoal = true;
-        let provedGoals = 0;
-        let skippedGoals = 0;
         while (provedGoal) {
             u.merge(x, {step: 'starting loop'});
-            let grammar = loadGrammar(file);
-    
-            provedGoal = false;
-    
-            u.loop(grammar.goals, goal=> {
-                u.merge(x, {step: 'proving goal'});
-                let found = false;
-                let proof;
-                u.loop(u.range(maxDepth, 1), depth => {
-                    proof = prove(grammar.rules, goal.left, goal.right, depth);
-                    if (proof !== false) {
-                        // The goal is proved in two steps; it doesn't
-                        // need to be its own proof. Remove the goal.
-                        if (proof.length === 2) {
-                            removeGoal(file, goal.left, goal.right);
-                            skippedGoals++;
-                            u.merge(x, {skippedGoals});
-                        } else {
-                            found = true;
-                            provedGoals++;
-                            u.merge(x, {provedGoals});
-                        }
 
-                        return true;
-                    }
-                });
-    
-                if (found) {
-                    provedGoal = true;
-                    changed = true;
-                    u.merge(x, {proof});
-                    u.merge(x, {step: 'proved goal'});
-                    if (log) console.log('proved goal', { goal });
-    
-                    addProofToFile(file, proof);
-                    u.merge(x, {step: 'added proof goal'});
-                    return true;
-                } else {
-                    if (log) console.log('did not yet prove goal', { goal });
-                }
-            });
-    
-            max3ProofSteps(file);
-            formatFile(file);
-
-            if (trimProofs(file)) {
-                changed = true;
-            }
-            formatFile(file);
-
-            removeRedundantProofs(file);
-            formatFile(file);
+            let { newProvedGoal, newContents } = proverStep(contents, maxDepth);
+            if (log) console.log(loadAndProver.name, { newContents, newProvedGoal })
+            contents = newContents;
+            contents = newContents;
+            provedGoal = newProvedGoal;
         }
     });
+    return contents;
 }
-},{"./../grammars":"/grammars","wlj-utilities":9}],66:[function(require,module,exports){
 
-},{}],67:[function(require,module,exports){
+},{"./proverStep":9,"wlj-utilities":18}],75:[function(require,module,exports){
+
+},{}],76:[function(require,module,exports){
 exports.endianness = function () { return 'LE' };
 
 exports.hostname = function () {
@@ -4147,7 +4252,7 @@ exports.homedir = function () {
 	return '/'
 };
 
-},{}],68:[function(require,module,exports){
+},{}],77:[function(require,module,exports){
 (function (process){
 // .dirname, .basename, and .extname methods are extracted from Node.js v8.11.1,
 // backported and transplited with Babel, with backwards-compat fixes
@@ -4453,7 +4558,7 @@ var substr = 'ab'.substr(-1) === 'b'
 ;
 
 }).call(this,require('_process'))
-},{"_process":69}],69:[function(require,module,exports){
+},{"_process":78}],78:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
