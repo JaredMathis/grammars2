@@ -2,7 +2,6 @@
 const u = require('wlj-utilities');
 
 const {
-    loadGrammar,
     prove,
     addProofToFile,
     max3ProofSteps,
@@ -11,20 +10,24 @@ const {
     removeGoal,
     trimProofs,
 } = require('../grammars');
+const parseGrammar = require('./parseGrammar');
 
 module.exports = proverStep;
 
-function proverStep(grammar, maxDepth) {
+let log = false;
+
+function proverStep(file, maxDepth) {
+    let provedGoal = false;
+    let changed;
+
+    grammar = parseGrammar(file);
+    if (log) console.log(proverStep.name, { file });
+
     u.scope(proverStep.name, x => {
-        let log = false;
-
-        u.merge(x, {step: 'starting loop'});
-        let grammar = loadGrammar(file);
-
-        provedGoal = false;
 
         u.loop(grammar.goals, goal=> {
             u.merge(x, {step: 'proving goal'});
+            if (log) console.log('proving goal', { goal });
             let found = false;
             let proof;
             u.loop(u.range(maxDepth, 1), depth => {
@@ -33,13 +36,9 @@ function proverStep(grammar, maxDepth) {
                     // The goal is proved in two steps; it doesn't
                     // need to be its own proof. Remove the goal.
                     if (proof.length === 2) {
-                        removeGoal(file, goal.left, goal.right);
-                        skippedGoals++;
-                        u.merge(x, {skippedGoals});
+                        file = removeGoal(file, goal.left, goal.right);
                     } else {
                         found = true;
-                        provedGoals++;
-                        u.merge(x, {provedGoals});
                     }
 
                     return true;
@@ -53,7 +52,8 @@ function proverStep(grammar, maxDepth) {
                 u.merge(x, {step: 'proved goal'});
                 if (log) console.log('proved goal', { goal });
 
-                addProofToFile(file, proof);
+                file = addProofToFile(file, proof);
+                if (log) console.log(proverStep.name + ' added proof to file')
                 u.merge(x, {step: 'added proof goal'});
                 return true;
             } else {
@@ -61,15 +61,27 @@ function proverStep(grammar, maxDepth) {
             }
         });
 
-        max3ProofSteps(file);
-        formatFile(file);
+        u.merge(x, {step: 'max3ProofSteps'});
+        file = max3ProofSteps(file);
+        file = formatFile(file);
 
-        if (trimProofs(file)) {
-            changed = true;
+        u.merge(x, {step: 'trimProofs'});
+        let { newContents, anyChanged } = trimProofs(file);
+        file = newContents;
+        if (anyChanged) {
+            //trimProofsChanged = true;
         }
-        formatFile(file);
+        file = formatFile(file);
 
-        removeRedundantProofs(file);
-        formatFile(file);
+        if (log) console.log(proverStep.name + ' trimmed ')
+        if (log) console.log(file);
+
+        u.merge(x, {step: 'removeRedundantProofs'});
+        file = removeRedundantProofs(file);
+        file = formatFile(file);
     });
+
+    if (log) console.log(proverStep.name, {changed, file});
+
+    return { newProvedGoal: provedGoal, newContents: file };
 }

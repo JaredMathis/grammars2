@@ -1,12 +1,15 @@
 const u = require('wlj-utilities');
 
 const fs = require('fs');
+const parseGrammar = require('./library/parseGrammar');
+const assertIsProofStep = require('./library/assertIsProofStep');
+const getLines = require('./library/getLines');
+const getGoalToken = require('./library/getGoalToken');
+const lineIsProofStep = require('./library/lineIsProofStep');
+const isValidProof = require('./library/isValidProof');
 
 module.exports = {
     loadGrammar,
-    isValidSubstitution,
-    isValidProof,
-    assertIsValidGrammarFile,
     substitute,
     prove,
     addProofToFile,
@@ -25,28 +28,10 @@ function loadGrammar(fileName) {
     u.scope(loadGrammar.name, context => {
         u.merge(context, {fileName});
         const fileContents = u.readFile(fileName);
-        grammar = assertIsValidGrammarFile(fileContents);
+        grammar = parseGrammar(fileContents);
     });
 
     return grammar;
-}
-
-const goalToken = "#goal";
-
-function getLines(s) {
-    let lines;
-    u.scope(getLines.name, context => {
-        u.assert(() => u.isString(s));
-
-        lines = s.split(`
-`);
-        
-    });
-    return lines;
-}
-
-function lineIsProofStep(line) {
-    return line.length > 0 && line.indexOf(' ') < 0;
 }
 
 function lineIsRule(line) {
@@ -68,125 +53,6 @@ function lineIsRule(line) {
     return result;
 }
 
-function lineIsGoal(line) {
-    let goal;
-
-    u.scope(lineIsRule.name, context => {
-        u.assert(() => u.isString(line));
-
-        if (!line.startsWith(goalToken)) {
-            return false;
-        }
-
-        let parts = line.split(' ');
-        let goalParts = parts.slice(1);
-        u.assert(() => goalParts.length === 2);
-        goal = {left: goalParts[0], right: goalParts[1]}; 
-    });
-    return goal;
-}
-
-/**
- * Checks for proof correctness,
- * Checks for... TODO
- * @param {*} fileContents 
- */
-function assertIsValidGrammarFile(fileContents) {
-    let log = false;
-    if (log) console.log('assertIsValidGrammarFile entered');
-
-    let proof;
-    let grammar;
-
-    u.scope(assertIsValidGrammarFile.name, context => {
-        grammar = {};
-        grammar.rules = [];
-        grammar.goals = [];
-        proof = [];
-
-        let lines = getLines(fileContents);
-
-        u.merge(context, {step:'processing lines'})
-        u.loop(lines, line => {
-            if (log) console.log('processing line', { line });
-
-            // There should be no double spaces.
-            u.assert(() => line.indexOf('  ') < 0);
-
-            let parts = line.split(' ');
-
-            let goal;
-            if (goal = lineIsGoal(line)) {
-                grammar.goals.push(goal);
-                return;
-            }
-
-            if (line === '') {
-                checkProof();
-                return;
-            }
-
-            // This is a proof step
-            if (lineIsProofStep(line)) {
-                proof.push(line);
-                return;
-            }
-    
-            u.merge(context, {parts});
-            u.assert(() => parts.length === 2);
-
-            u.assert(() => parts[0].length >= 1);
-            u.assert(() => parts[1].length >= 1);
-            grammar.rules.push({ left: parts[0], right: parts[1]});
-        });
-
-        checkProof();
-
-        // Make sure goals have not been proved.
-        u.merge(context, {step:'already proved goals'})
-        u.loop(grammar.goals, goal => {
-            u.loop(grammar.rules, rule => {
-                let goalAlreadyProved = goal.left === rule.left && goal.right === rule.right;
-                u.merge(context, {goalAlreadyProved});
-                u.assert(() => !goalAlreadyProved);
-            });
-        });
-
-        function checkProof() {
-            u.scope(checkProof.name, context => {
-                if (log) console.log('checkProof entered', {proof});
-                // If proof is empty, nothing to check
-                if (proof.length === 0) {
-                    return;
-                }
-        
-                // If the proof is derivable from just first and last steps from previous
-                // proofs, then this proof is redundant.
-                let redundant = isValidProof(grammar.rules, [proof[0], u.arrayLast(proof)]);
-                u.merge(context, {proof});
-                u.assert(() => !redundant);
-        
-                let valid = isValidProof(grammar.rules, proof);
-                u.assert(() => valid);
-        
-                // Add the first and last step of the proof as a new grammar rule.
-                grammar.rules.push({left: proof[0], right: u.arrayLast(proof)});
-        
-                // Reset the proof.
-                proof = [];
-            });
-        }
-    });
-
-    return grammar;
-}
-
-function assertIsProofStep(step) {
-    u.scope(assertIsProofStep.name, context => {
-        u.assert(() => u.isString(step));
-    });
-}
-
 function assertIsProof(proof) {
     u.scope(assertIsProof.name, context => {
         u.merge(context, {proof});
@@ -196,129 +62,6 @@ function assertIsProof(proof) {
             assertIsProofStep(p);
         })
     });
-}
-
-function isValidProof(rules, proof) {
-    let result = true;
-    let log = false;
-    if (log) console.log('isValidProof entered', {rules, proof});
-    u.scope(isValidProof.name, x => {
-        u.merge(x, {rules});
-        u.merge(x, {proof});
-
-        u.assert(() => u.isArray(rules));
-        u.assert(() => u.isArray(proof));
-        u.loop(proof, step => {
-            assertIsProofStep(step);
-        })
-
-        u.merge(x, {step:'processing proof steps'});
-        u.loop(u.range(proof.length - 1, 1), (currentIndex) => {
-            let validStep = false;
-
-            let previousIndex = currentIndex - 1;
-            u.merge(x, {previousIndex});
-
-            let previous = proof[previousIndex];
-            u.merge(x, {previous});
-
-            let current = proof[currentIndex];            
-
-            let allS = [];
-            u.loop(u.range(previous.length), previousIndex => {
-                u.loop(rules, rule => {
-                    if (validStep) {
-                        return true;
-                    }
-                    let s = isValidSubstitution(
-                        previous, current, rule.left, rule.right, previousIndex);
-                    allS.push(s);
-                    u.merge(x, {s});
-                    u.assert(() => !validStep);
-                    validStep = s.valid;
-                });
-                if (validStep) {
-                    return true;
-                }
-            });
-
-            u.merge(x, {allS});
-            u.merge(x, {validStep});
-
-            if (!validStep) {
-                result = false;
-                return;
-            }
-        });
-    });
-
-    return result;
-}
-
-function isValidSubstitution(previous, current, left, right, index) {
-    let log = false;
-    if (log) console.log('isValidSubstitution entered', {previous, current, left, right, index});
-
-    let result = {};
-    u.scope(isValidSubstitution.name, context => {
-        u.merge(context, {previous});
-        u.merge(context, {current});
-        u.merge(context, {left});
-        u.merge(context, {right});
-        u.merge(context, {index});
-
-        assertIsProofStep(previous);
-        assertIsProofStep(current);
-        assertIsProofStep(left);
-        assertIsProofStep(right);
-        u.assert(() => u.isInteger(index));
-
-        // Leading up to the rule before and current should match.
-        let previousBefore = previous.substring(0, index);
-        u.merge(context, {previousBefore});
-        let currentBefore = current.substring(0, index);
-        u.merge(context, {currentBefore});
-        if (previousBefore !== currentBefore) {
-            result.valid = false;
-            result.message = 'before does not match';
-            return;
-        }
-
-        // The previous should match the rule left.
-        let previousMatch = previous.substring(index, index + left.length);
-        u.merge(context, {previousMatch});
-        if (previousMatch !== left) {
-            result.valid = false;
-            result.message = 'left does not match previous';
-            return;
-        }
-
-        // The current should match the rule right.
-        let currentMatch = current.substring(index, index + right.length);
-        u.merge(context, {currentMatch});
-        if (currentMatch !== right) {
-            result.valid = false;
-            result.message = 'right does not match current';
-            return;
-        }
-
-        // The afters should match.
-        let previousAfter = previous.substring(index + left.length);
-        u.merge(context, {previousAfter});
-        let currentAfter = current.substring(index + right.length);
-        u.merge(context, {currentAfter});
-        if (previousAfter !== currentAfter) {
-            result.valid = false;
-            result.message = 'after does not match';
-            return;
-        }
-
-        result.valid = true;
-    });
-
-    if (log) console.log({result});
-
-    return result;
 }
 
 function substitute(left, right, previous, index) {
@@ -438,16 +181,16 @@ function prove(rules, start, goal, depth, proof) {
 function addProofToFile(file, proof) {
     u.scope(addProofToFile.name, context => {
         // Add the proof.
-        u.appendFileLine(file);
+        file += u.EOL
         u.loop(proof, p => {
-            u.appendFileLine(file);
-            fs.appendFileSync(file, p);
+            file += u.EOL
+            file += p;
         });
 
-        removeGoal(file, proof[0], u.arrayLast(proof));
+        file = removeGoal(file, proof[0], u.arrayLast(proof));
 
         // Make sure proofs in file are valid.
-        let grammar = loadGrammar(file);
+        let grammar = parseGrammar(file);
 
         // Make sure last proof is the proof we added
         let lastRule = u.arrayLast(grammar.rules);
@@ -455,16 +198,11 @@ function addProofToFile(file, proof) {
         u.assert(() => lastRule.left === proof[0]);
         u.assert(() => lastRule.right === u.arrayLast(proof));
     });
-}
-
-function overwriteFile(file, lines) {
-    fs.writeFileSync(file, '');
-    u.loop(lines, line => {
-        u.appendFileLine(file, line);
-    });
+    return file;
 }
 
 function removeGoal(file, left, right) {
+    let log = false;
     u.scope(removeGoal.name, context => {
         u.merge(context, {file});
         u.merge(context, {left});
@@ -473,8 +211,7 @@ function removeGoal(file, left, right) {
         assertIsProofStep(left);
         assertIsProofStep(right);
 
-        let fileContents = u.readFile(file);
-        let lines = getLines(fileContents);
+        let lines = getLines(file);
 
         let result = [];
 
@@ -482,7 +219,7 @@ function removeGoal(file, left, right) {
 
         u.loop(lines, line => {
             // Skip if the line is the goal.
-            if (line === `${goalToken} ${left} ${right}`) {
+            if (line === `${getGoalToken()} ${left} ${right}`) {
                 goalCount++;
                 return;
             }
@@ -493,11 +230,12 @@ function removeGoal(file, left, right) {
 
         u.assertIsEqual(() => goalCount, 1);
 
-        // Reset file contents.
-        overwriteFile(file, result);
+        file = result.join(u.EOL);
 
         u.merge(context, {result});
     });
+    if (log) console.log(removeGoal.name + ' leaving', { file });
+    return file;
 }
 
 function breakUpProof(proof) {
@@ -551,12 +289,12 @@ function breakUpProof(proof) {
 
 function max3ProofSteps(file) {
     let result = [];
-    u.scope(max3ProofSteps.name, context => {
+    u.scope(max3ProofSteps.name, x => {
+        u.merge(x,{file});
         // Make sure proofs are valid.
-        loadGrammar(file);
+        parseGrammar(file);
 
-        let fileContents = u.readFile(file);
-        let lines = getLines(fileContents);
+        let lines = getLines(file);
 
         let proof = [];
         u.loop(lines, line => {
@@ -586,45 +324,48 @@ function max3ProofSteps(file) {
             proof = [];
         }
 
-        overwriteFile(file, result);        
+        file = result.join(u.EOL);
     });
+    return file;
 }
 
 function formatFile(file) {
-    let text = u.readFile(file);
-    let lines = getLines(text);
-
-    if (lines.length === 0) {
-        return;
-    }
+    u.scope(formatFile.name, x => {
+        u.merge(x,{file});
+        let lines = getLines(file);
     
-    let result = [
-        lines[0],
-    ];
-
-    u.loop(u.range(lines.length - 1, 1), index => {
-        let previous = lines[index - 1];
-        let current = lines[index];
-
-        if (current === '' && current === previous) {
+        if (lines.length === 0) {
             return;
         }
-
-        result.push(current);
+        
+        let result = [
+            lines[0],
+        ];
+    
+        u.loop(u.range(lines.length - 1, 1), index => {
+            let previous = lines[index - 1];
+            let current = lines[index];
+    
+            if (current === '' && current === previous) {
+                return;
+            }
+    
+            result.push(current);
+        })
+    
+        file = result.join(u.EOL);
     })
-
-    overwriteFile(file, result);
+    return file;
 }
 
-function removeRedundantProofs(fileName) {
+function removeRedundantProofs(file) {
     let log = false;
     let result = [];
     u.scope(removeRedundantProofs.name, context => {
-        u.merge(context, {fileName});
+        u.merge(context, {file});
 
         u.merge(context, {step:'reading file'});
-        let fileContents = u.readFile(fileName);
-        let lines = getLines(fileContents);
+        let lines = getLines(file);
 
         let proof = [];
         let rules = [];
@@ -645,7 +386,7 @@ function removeRedundantProofs(fileName) {
         });
         processProof();
 
-        overwriteFile(fileName, result);   
+        file = result.join(u.EOL);
 
         function processProof() {
             u.scope(processProof.name, context => {
@@ -674,18 +415,19 @@ function removeRedundantProofs(fileName) {
             });
         }     
     });
+
+    return file;
 }
 
-function trimProofs(fileName) {
+function trimProofs(file) {
     let log = false;
     if (log) console.log('trimProofs entered');
 
     let anyChanged = false;
     u.scope(trimProofs.name, context => {
-        u.merge(context, {fileName});
+        u.merge(context, {file});
 
-        let fileContents = u.readFile(fileName);
-        let lines = getLines(fileContents);
+        let lines = getLines(file);
         let newLines = [];
 
         let proof = [];
@@ -710,10 +452,14 @@ function trimProofs(fileName) {
         });
         processProof();
 
-        overwriteFile(fileName, newLines);   
+        if (log) console.log({newLines});
+
+        file = newLines.join(u.EOL);
 
         function processProof() {
             u.scope(processProof.name, context => {
+                if (log) console.log(trimProofs.name + ' ' + processProof.name);
+                if (log) console.log({proof});
                 u.merge(context, {proof});
                 if (proof.length === 0) {
                     return;
@@ -800,5 +546,5 @@ function trimProofs(fileName) {
         }
     });
 
-    return anyChanged;
+    return { anyChanged, newContents: file };
 }

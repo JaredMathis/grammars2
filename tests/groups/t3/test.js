@@ -8,6 +8,7 @@ const {
  } = require('../../../grammars');
 
 const u = require('wlj-utilities');
+const overwriteFile = require('../../../library/overwriteFile');
 
 u.scope(__filename, context => {
     let testDirectory = './tests/groups';
@@ -15,8 +16,10 @@ u.scope(__filename, context => {
     let testGrammar = path.join(directory, 'actual.g');
     fs.copyFileSync(path.join(directory, 'input.g'), testGrammar);
 
-    removeRedundantProofs(testGrammar);
-    formatFile(testGrammar);
+    let file = u.readFile(testGrammar);
+    file = removeRedundantProofs(file);
+    file = formatFile(file);
+    overwriteFile(testGrammar, file);
 
     // Ensure grammar is valid
     loadGrammar(testGrammar);

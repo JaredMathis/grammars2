@@ -1,13 +1,11 @@
 const u = require('wlj-utilities');
 
-const {
-    assertIsValidGrammarFile,
-} = require('../grammars');
+const parseGrammar = require('../library/parseGrammar');
 
-u.scope(__filename, context => {    
+u.scope(__filename, context => {
     let i = 0;
-    u.merge(context, {i:i++});
-    assertIsValidGrammarFile(`
+    u.merge(context, { i: i++ });
+    parseGrammar(`
 a aa
 
 a
@@ -15,8 +13,8 @@ aa
 aaa
 `);
 
-// Can a grammar file learn grammar rules as it does proofs?
-assertIsValidGrammarFile(`
+    // Can a grammar file learn grammar rules as it does proofs?
+    parseGrammar(`
 a aa
 
 a
@@ -32,7 +30,7 @@ aaaaaaaa
 aaaaaaaaaaaa
 `);
 
-    assertIsValidGrammarFile(`
+    parseGrammar(`
 a b
 
 aaa
@@ -41,7 +39,7 @@ bab
 bbb
 `);
 
-    assertIsValidGrammarFile(`
+    parseGrammar(`
 a b
 
 aaa

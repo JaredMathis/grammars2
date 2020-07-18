@@ -21,5 +21,5 @@ u.scope(__filename, context => {
 
     let text = u.readFile(testGrammar);
     let expected = u.readFile(path.join(directory, 'expected.g'))
-    u.assertIsEqual(text, expected);
+    u.assertIsEqualJson(text, expected);
 });

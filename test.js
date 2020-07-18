@@ -24,3 +24,12 @@ require('./tests/groups/t12/test.js');
 
 
 require("./tests/prover/prover.js");
+require("./tests/parseGrammar/1.js");
+require("./tests/getLines/1.js");
+require("./tests/lineIsGoal/1.js");
+require("./tests/getGoalToken/1.js");
+require("./tests/lineIsProofStep/1.js");
+require("./tests/isValidProof/1.js");
+require("./tests/assertIsProofStep/1.js");
+require("./tests/isValidSubstitution/1.js");
+require("./tests/overwriteFile/1.js");

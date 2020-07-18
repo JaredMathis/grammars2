@@ -1,2 +1,11 @@
 module.exports = {};
 module.exports.loadAndProver = require("./library/loadAndProver.js");
+module.exports.parseGrammar = require("./library/parseGrammar.js");
+module.exports.getLines = require("./library/getLines.js");
+module.exports.lineIsGoal = require("./library/lineIsGoal.js");
+module.exports.getGoalToken = require("./library/getGoalToken.js");
+module.exports.lineIsProofStep = require("./library/lineIsProofStep.js");
+module.exports.isValidProof = require("./library/isValidProof.js");
+module.exports.assertIsProofStep = require("./library/assertIsProofStep.js");
+module.exports.isValidSubstitution = require("./library/isValidSubstitution.js");
+module.exports.overwriteFile = require("./library/overwriteFile.js");

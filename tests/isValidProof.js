@@ -1,8 +1,5 @@
 const u = require('wlj-utilities');
-
-const {
-    isValidProof,
-} = require('../grammars');
+const isValidProof = require('../library/isValidProof');
 
 u.scope(__filename, context => {
     let i = 0;
